@@ -8,107 +8,196 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
     </style>
 </head>
 <body class="bg-[#F7F5F0] text-[#5C544B]">
-    <div id="app" class="flex flex-col h-screen overflow-hidden">
+    <div class="flex flex-col h-screen overflow-hidden">
         <nav class="bg-white h-16 border-b flex justify-between items-center px-6 shadow-sm shrink-0">
             <div class="flex flex-col">
                 <span class="text-[10px] font-bold text-gray-400">目前單號</span>
-                <span id="order-id" class="text-xl font-black font-mono">#001</span>
+                <span id="order-id-display" class="text-xl font-black font-mono">#001</span>
             </div>
-            <div class="flex gap-6">
-                <button onclick="switchTab('order')" class="flex flex-col items-center text-[#8C7A6D]">
-                    <i data-lucide="utensils-crossed"></i><span class="text-[10px] font-bold">點餐</span>
+            <div class="flex gap-8">
+                <button onclick="showTab('order')" id="btn-order" class="flex flex-col items-center text-[#8C7A6D]">
+                    <i data-lucide="utensils-crossed" class="w-5 h-5"></i><span class="text-[10px] font-bold">點餐</span>
                 </button>
-                <button onclick="switchTab('history')" class="flex flex-col items-center text-gray-300">
-                    <i data-lucide="history"></i><span class="text-[10px] font-bold">數據</span>
+                <button onclick="showTab('history')" id="btn-history" class="flex flex-col items-center text-gray-300">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">數據</span>
                 </button>
             </div>
         </nav>
 
-        <main id="content" class="flex-1 overflow-y-auto p-4 pb-24">
-            <div class="menu-grid" id="menu-list">
-                </div>
-        </main>
+        <main id="main-content" class="flex-1 overflow-y-auto p-4 pb-32">
+            </main>
 
-        <div id="cart-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-            <div>
-                <span class="text-xs text-gray-400 font-bold">小計</span>
-                <div class="text-2xl font-black text-[#8C7A6D] font-mono">$<span id="total-amount">0</span></div>
+        <div id="footer-cart" class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center shadow-lg">
+            <div onclick="toggleCartDetail()" class="flex items-center gap-2">
+                <div class="relative">
+                    <i data-lucide="shopping-cart" class="text-[#8C7A6D]"></i>
+                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-gray-400 block font-bold leading-none">應收總額</span>
+                    <span class="text-xl font-black font-mono text-[#8C7A6D]">$<span id="total-amount">0</span></span>
+                </div>
             </div>
-            <button onclick="checkout()" class="bg-[#8C7A6D] text-white px-8 py-3 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">
-                結帳
-            </button>
+            <button onclick="openCheckout()" class="bg-[#8C7A6D] text-white px-10 py-3 rounded-2xl font-bold shadow-md active:scale-95">結帳</button>
+        </div>
+    </div>
+
+    <div id="option-modal" class="modal">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-6 overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="selected-item-name" class="font-black text-lg">商品名稱</h3>
+                <button onclick="closeModal()"><i data-lucide="x" class="text-gray-400"></i></button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 mb-3 tracking-widest">基本客製</p>
+                    <div id="custom-options" class="grid grid-cols-2 gap-2"></div>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-gray-400 mb-3 tracking-widest">加購項目</p>
+                    <div id="addon-options" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <button onclick="confirmAddToCart()" class="w-full bg-[#8C7A6D] text-white py-4 rounded-2xl font-bold mt-8 shadow-lg">加入清單</button>
         </div>
     </div>
 
     <script>
-        // 菜單資料
-        const MENU_ITEMS = [
+        // --- 數據定義 ---
+        const MENU = [
             { id: 1, name: '原味章魚燒', price: 60 },
             { id: 2, name: '海苔章魚燒', price: 60 },
             { id: 3, name: '芥末章魚燒', price: 60 },
             { id: 4, name: '梅子章魚燒', price: 60 },
-            { id: 5, name: '辣味章魚燒', price: 60 },
-            { id: 6, name: '蜂蜜芥末', price: 60 },
-            { id: 7, name: '咖哩章魚燒', price: 60 },
-            { id: 8, name: '金沙鹹蛋黃', price: 70 },
-            { id: 9, name: '起司章魚燒', price: 70 },
-            { id: 10, name: '龍蝦沙拉', price: 80 }
+            { id: 5, name: '蜂蜜芥末', price: 60 },
+            { id: 6, name: '起司章魚燒', price: 70 },
+            { id: 7, name: '龍蝦沙拉', price: 80 }
+        ];
+        const CUSTOMS = ['美乃滋', '柴魚片', '醬油'];
+        const ADDONS = [
+            { id: 'spicy', name: '加辣', price: 0 },
+            { id: 'wasabi', name: '加芥末', price: 0 },
+            { id: 'cheese', name: '加起司', price: 10 }
         ];
 
-        let cartTotal = 0;
+        let cart = [];
         let orderCount = 1;
+        let dailyTotal = 0;
+        let tempItem = null;
 
-        // 初始化菜單
-        function initMenu() {
-            const container = document.getElementById('menu-list');
-            container.innerHTML = MENU_ITEMS.map(item => `
-                <button onclick="addToCart(${item.price})" class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 text-left active:bg-orange-50 transition-colors">
-                    <div class="text-sm font-bold h-10 mb-2">${item.name}</div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-[#8C7A6D] font-mono font-bold">$${item.price}</span>
-                        <div class="bg-gray-100 p-1 rounded-lg"><i data-lucide="plus" class="w-3 h-3"></i></div>
+        // --- 介面控制 ---
+        function renderMenu() {
+            const html = MENU.map(item => `
+                <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col mb-3">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="font-black text-sm">${item.name}</span>
+                        <span class="font-mono font-bold text-[#8C7A6D]">$${item.price}</span>
                     </div>
-                </button>
+                    <button onclick="openOptions(${item.id})" class="w-full py-2 bg-[#F2EBE5] rounded-xl text-[11px] font-bold text-[#8C7A6D]">選擇客製</button>
+                </div>
             `).join('');
+            document.getElementById('main-content').innerHTML = `<div class="grid grid-cols-2 gap-3">${html}</div>`;
             lucide.createIcons();
         }
 
-        // 加入購物車 (簡單加總)
-        function addToCart(price) {
-            cartTotal += price;
-            document.getElementById('total-amount').innerText = cartTotal;
-        }
-
-        // 結帳邏輯
-        function checkout() {
-            if (cartTotal === 0) return alert('尚未選擇餐點');
+        function openOptions(id) {
+            tempItem = { ...MENU.find(m => m.id === id), addons: [], customs: { '美乃滋': '正常', '柴魚片': '正常', '醬油': '正常' } };
+            document.getElementById('selected-item-name').innerText = tempItem.name;
             
-            const confirmPay = confirm(`總計 $${cartTotal}，確認結帳？`);
-            if (confirmPay) {
-                alert('結帳成功！');
-                cartTotal = 0;
+            // 渲染客製化 (美乃滋等)
+            document.getElementById('custom-options').innerHTML = CUSTOMS.map(c => `
+                <div class="flex flex-col gap-1">
+                    <span class="text-[10px] font-bold">${c}</span>
+                    <select onchange="updateTempCustom('${c}', this.value)" class="bg-gray-50 p-2 rounded-lg text-xs border-none">
+                        <option>正常</option><option>少</option><option>多</option><option>不要</option>
+                    </select>
+                </div>
+            `).join('');
+
+            // 渲染加購
+            document.getElementById('addon-options').innerHTML = ADDONS.map(a => `
+                <label class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-transparent">
+                    <span class="text-xs font-bold">${a.name} (+$${a.price})</span>
+                    <input type="checkbox" onchange="toggleTempAddon('${a.id}')" class="w-4 h-4 accent-[#8C7A6D]">
+                </label>
+            `).join('');
+
+            document.getElementById('option-modal').classList.add('active');
+            lucide.createIcons();
+        }
+
+        function updateTempCustom(key, val) { tempItem.customs[key] = val; }
+        
+        function toggleTempAddon(id) {
+            const idx = tempItem.addons.indexOf(id);
+            if(idx > -1) tempItem.addons.splice(idx, 1);
+            else tempItem.addons.push(id);
+        }
+
+        function confirmAddToCart() {
+            const addonPrice = tempItem.addons.reduce((sum, aid) => sum + ADDONS.find(a => a.id === aid).price, 0);
+            cart.push({ ...tempItem, finalPrice: tempItem.price + addonPrice });
+            updateCartDisplay();
+            closeModal();
+        }
+
+        function updateCartDisplay() {
+            const total = cart.reduce((sum, i) => sum + i.finalPrice, 0);
+            document.getElementById('total-amount').innerText = total;
+            document.getElementById('cart-count').innerText = cart.length;
+        }
+
+        function openCheckout() {
+            if (cart.length === 0) return alert('清單是空的！');
+            const total = cart.reduce((sum, i) => sum + i.finalPrice, 0);
+            const pay = prompt(`應收 $${total}，請輸入實收金額：`);
+            if (pay !== null) {
+                const change = parseInt(pay) - total;
+                if (change < 0) return alert('金額不足！');
+                alert(`結帳成功！找零：$${change}`);
+                dailyTotal += total;
+                cart = [];
                 orderCount++;
-                document.getElementById('total-amount').innerText = '0';
-                document.getElementById('order-id').innerText = '#' + String(orderCount).padStart(3, '0');
+                updateCartDisplay();
+                document.getElementById('order-id-display').innerText = '#' + String(orderCount).padStart(3, '0');
             }
         }
 
-        // 切換分頁 (簡單示意)
-        function switchTab(tab) {
-            if (tab === 'history') {
-                document.getElementById('content').innerHTML = '<div class="text-center py-20 text-gray-400 font-bold">數據功能串接中...</div>';
+        function showTab(tab) {
+            const bOrder = document.getElementById('btn-order');
+            const bHist = document.getElementById('btn-history');
+            if(tab === 'history') {
+                bHist.classList.replace('text-gray-300', 'text-[#8C7A6D]');
+                bOrder.classList.replace('text-[#8C7A6D]', 'text-gray-300');
+                document.getElementById('main-content').innerHTML = `
+                    <div class="bg-white p-6 rounded-[2rem] shadow-sm text-center">
+                        <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">今日累計營業額</p>
+                        <p class="text-4xl font-black text-[#8C7A6D] font-mono">$${dailyTotal}</p>
+                        <div class="mt-6 pt-6 border-t text-left">
+                            <p class="text-[10px] font-bold text-gray-300 mb-2">統計細節</p>
+                            <div class="flex justify-between text-sm font-bold"><span>總訂單數</span><span>${orderCount-1} 單</span></div>
+                        </div>
+                    </div>
+                `;
             } else {
-                initMenu();
+                bOrder.classList.replace('text-gray-300', 'text-[#8C7A6D]');
+                bHist.classList.replace('text-[#8C7A6D]', 'text-gray-300');
+                renderMenu();
             }
         }
 
-        // 啟動程式
-        initMenu();
+        function closeModal() { document.getElementById('option-modal').classList.remove('active'); }
+
+        // 啟動
+        renderMenu();
     </script>
 </body>
 </html>
