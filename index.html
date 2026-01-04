@@ -5,80 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>章魚燒 POS 系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     </style>
 </head>
-<body>
-    <div id="root">正在載入系統...</div>
+<body class="bg-[#F7F5F0] text-[#5C544B]">
+    <div id="app" class="flex flex-col h-screen overflow-hidden">
+        <nav class="bg-white h-16 border-b flex justify-between items-center px-6 shadow-sm shrink-0">
+            <div class="flex flex-col">
+                <span class="text-[10px] font-bold text-gray-400">目前單號</span>
+                <span id="order-id" class="text-xl font-black font-mono">#001</span>
+            </div>
+            <div class="flex gap-6">
+                <button onclick="switchTab('order')" class="flex flex-col items-center text-[#8C7A6D]">
+                    <i data-lucide="utensils-crossed"></i><span class="text-[10px] font-bold">點餐</span>
+                </button>
+                <button onclick="switchTab('history')" class="flex flex-col items-center text-gray-300">
+                    <i data-lucide="history"></i><span class="text-[10px] font-bold">數據</span>
+                </button>
+            </div>
+        </nav>
 
-    <script type="text/babel">
-        const { useState, useMemo, useEffect } = React;
-
-        // 直接在全域中定義 Lucide 圖示，避免報錯
-        const { 
-          Plus, Minus, Trash2, ShoppingCart, X, UtensilsCrossed,
-          Banknote, Smartphone, Clock, ClipboardList, History,
-          Truck, Store, ChevronRight, Undo2, DollarSign,
-          AlertTriangle, TrendingUp, LogOut
-        } = lucide;
-
-        // 簡化後的 App 元件，確保能第一時間渲染
-        function App() {
-            const [activeTab, setActiveTab] = useState('order');
-            const [cart, setCart] = useState([]);
-
-            const MENU_ITEMS = [
-                { id: 1, name: '原味章魚燒', price: 60 },
-                { id: 2, name: '海苔章魚燒', price: 60 },
-                { id: 3, name: '起司章魚燒', price: 70 }
-            ];
-
-            return (
-                <div className="flex flex-col h-screen bg-[#F7F5F0]">
-                    <nav className="bg-white h-16 border-b flex justify-around items-center px-4 shadow-sm">
-                        <button onClick={() => setActiveTab('order')} className={`flex flex-col items-center ${activeTab === 'order' ? 'text-orange-600' : 'text-gray-400'}`}>
-                            <UtensilsCrossed size={20} /><span className="text-xs">點餐</span>
-                        </button>
-                        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-orange-600' : 'text-gray-400'}`}>
-                            <History size={20} /><span className="text-xs">數據</span>
-                        </button>
-                    </nav>
-
-                    <main className="p-4 flex-1">
-                        {activeTab === 'order' ? (
-                            <div className="grid grid-cols-2 gap-3">
-                                {MENU_ITEMS.map(item => (
-                                    <button 
-                                        key={item.id} 
-                                        className="bg-white p-4 rounded-2xl shadow-sm border text-left active:bg-gray-50"
-                                        onClick={() => alert('已加入: ' + item.name)}
-                                    >
-                                        <div className="font-bold text-sm mb-2">{item.name}</div>
-                                        <div className="text-orange-600 font-mono">${item.price}</div>
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center text-gray-400 mt-10">尚無歷史數據</div>
-                        )}
-                    </main>
-
-                    <div className="p-4 bg-white border-t text-center text-[10px] text-gray-400">
-                        版本：1.0.1 (穩定版)
-                    </div>
+        <main id="content" class="flex-1 overflow-y-auto p-4 pb-24">
+            <div class="menu-grid" id="menu-list">
                 </div>
-            );
+        </main>
+
+        <div id="cart-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+            <div>
+                <span class="text-xs text-gray-400 font-bold">小計</span>
+                <div class="text-2xl font-black text-[#8C7A6D] font-mono">$<span id="total-amount">0</span></div>
+            </div>
+            <button onclick="checkout()" class="bg-[#8C7A6D] text-white px-8 py-3 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">
+                結帳
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 菜單資料
+        const MENU_ITEMS = [
+            { id: 1, name: '原味章魚燒', price: 60 },
+            { id: 2, name: '海苔章魚燒', price: 60 },
+            { id: 3, name: '芥末章魚燒', price: 60 },
+            { id: 4, name: '梅子章魚燒', price: 60 },
+            { id: 5, name: '辣味章魚燒', price: 60 },
+            { id: 6, name: '蜂蜜芥末', price: 60 },
+            { id: 7, name: '咖哩章魚燒', price: 60 },
+            { id: 8, name: '金沙鹹蛋黃', price: 70 },
+            { id: 9, name: '起司章魚燒', price: 70 },
+            { id: 10, name: '龍蝦沙拉', price: 80 }
+        ];
+
+        let cartTotal = 0;
+        let orderCount = 1;
+
+        // 初始化菜單
+        function initMenu() {
+            const container = document.getElementById('menu-list');
+            container.innerHTML = MENU_ITEMS.map(item => `
+                <button onclick="addToCart(${item.price})" class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 text-left active:bg-orange-50 transition-colors">
+                    <div class="text-sm font-bold h-10 mb-2">${item.name}</div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[#8C7A6D] font-mono font-bold">$${item.price}</span>
+                        <div class="bg-gray-100 p-1 rounded-lg"><i data-lucide="plus" class="w-3 h-3"></i></div>
+                    </div>
+                </button>
+            `).join('');
+            lucide.createIcons();
         }
 
-        // 渲染到網頁
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // 加入購物車 (簡單加總)
+        function addToCart(price) {
+            cartTotal += price;
+            document.getElementById('total-amount').innerText = cartTotal;
+        }
+
+        // 結帳邏輯
+        function checkout() {
+            if (cartTotal === 0) return alert('尚未選擇餐點');
+            
+            const confirmPay = confirm(`總計 $${cartTotal}，確認結帳？`);
+            if (confirmPay) {
+                alert('結帳成功！');
+                cartTotal = 0;
+                orderCount++;
+                document.getElementById('total-amount').innerText = '0';
+                document.getElementById('order-id').innerText = '#' + String(orderCount).padStart(3, '0');
+            }
+        }
+
+        // 切換分頁 (簡單示意)
+        function switchTab(tab) {
+            if (tab === 'history') {
+                document.getElementById('content').innerHTML = '<div class="text-center py-20 text-gray-400 font-bold">數據功能串接中...</div>';
+            } else {
+                initMenu();
+            }
+        }
+
+        // 啟動程式
+        initMenu();
     </script>
 </body>
 </html>
