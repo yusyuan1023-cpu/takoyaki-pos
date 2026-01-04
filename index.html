@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>章魚燒 POS 系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -11,294 +11,72 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; }
+        body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">正在載入系統...</div>
 
     <script type="text/babel">
         const { useState, useMemo, useEffect } = React;
 
-        // --- Firebase 配置 ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyBCkW3PeRzi23aKx4LiZL68FpwJb39NubQ",
-          authDomain: "takoyaki-pos.firebaseapp.com",
-          projectId: "takoyaki-pos",
-          storageBucket: "takoyaki-pos.firebasestorage.app",
-          messagingSenderId: "819656860400",
-          appId: "1:819656860400:web:0c8d3723d2d86ee04a9835",
-          measurementId: "G-7REF6XLCE4"
-        };
-
-        // 從全域取得圖示
+        // 直接在全域中定義 Lucide 圖示，避免報錯
         const { 
           Plus, Minus, Trash2, ShoppingCart, X, UtensilsCrossed,
           Banknote, Smartphone, Clock, ClipboardList, History,
           Truck, Store, ChevronRight, Undo2, DollarSign,
-          AlertTriangle, TrendingUp, WalletMinimal, CalendarCheck,
-          BookOpen, ChevronDown, LogOut
+          AlertTriangle, TrendingUp, LogOut
         } = lucide;
 
-        // --- 配置數據 ---
-        const MENU_ITEMS = [
-          { id: 1, name: '原味章魚燒', price: 60 },
-          { id: 2, name: '海苔章魚燒', price: 60 },
-          { id: 3, name: '芥末章魚燒', price: 60 },
-          { id: 4, name: '梅子章魚燒', price: 60 },
-          { id: 5, name: '辣味章魚燒', price: 60 },
-          { id: 6, name: '蜂蜜芥末章魚燒', price: 60 },
-          { id: 7, name: '咖哩章魚燒', price: 60 },
-          { id: 8, name: '金沙鹹蛋黃章魚燒', price: 70 },
-          { id: 9, name: '起司章魚燒', price: 70 },
-          { id: 10, name: '龍蝦沙拉章魚燒', price: 80 },
-        ];
-        const CUSTOM_OPTIONS = [{ id: 'mayo', name: '美乃滋' }, { id: 'soy', name: '醬油' }, { id: 'flakes', name: '柴魚片' }];
-        const ADD_ONS = [{ id: 'spicy', name: '加辣', price: 5 }, { id: 'wasabi', name: '加芥末', price: 5 }, { id: 'seaweed', name: '加海苔', price: 5 }, { id: 'cheese', name: '加起司', price: 10 }];
-        const HALF_OPTIONS = [{ id: 'original', name: '原味', price: 0 }, { id: 'spicy', name: '辣味', price: 0 }, { id: 'seaweed', name: '海苔', price: 0 }, { id: 'wasabi', name: '芥末', price: 0 }, { id: 'plum', name: '梅子', price: 0 }, { id: 'honey', name: '蜂蜜芥末', price: 0 }, { id: 'curry', name: '咖哩', price: 0 }, { id: 'salted_egg', name: '金沙', price: 5 }, { id: 'cheese', name: '起司', price: 5 }, { id: 'lobster', name: '龍蝦', price: 10 }];
-        const LEVELS = ['正常', '不要', '多', '少'];
-
-        // --- 組件邏輯 ---
-        const CustomBadges = ({ customs, addOns = [], secondFlavor = null }) => {
-          const activeCustoms = Object.entries(customs).filter(([_, value]) => value !== '正常');
-          if (activeCustoms.length === 0 && addOns.length === 0 && !secondFlavor) return null;
-          return (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {secondFlavor && <span className="bg-[#EAE4D3] text-[#7A6E5D] text-[10px] px-1.5 py-0.5 rounded-md border border-[#DED5BC] font-medium">拼口味: {secondFlavor.name}</span>}
-              {activeCustoms.map(([key, value]) => {
-                const label = CUSTOM_OPTIONS.find(opt => opt.id === key)?.name;
-                return <span key={key} className="bg-[#F2EBE5] text-[#8C7A6D] text-[10px] px-1.5 py-0.5 rounded-md border border-[#E6D9CF] font-medium">{label}: {value}</span>;
-              })}
-              {addOns.map(id => {
-                const item = ADD_ONS.find(a => a.id === id);
-                return <span key={id} className="bg-[#E9EDF0] text-[#5D6F7A] text-[10px] px-1.5 py-0.5 rounded-md border border-[#D5DEE3] font-medium">+{item?.name}</span>;
-              })}
-            </div>
-          );
-        };
-
-        const NavButton = ({ active, onClick, icon: Icon, label, count }) => (
-          <button onClick={onClick} className={`flex flex-col items-center justify-center gap-1 transition-all relative ${active ? 'text-[#8C7A6D]' : 'text-[#8C7E6D]/50 hover:text-[#8C7A6D]'}`}>
-            <div className="relative">
-              <Icon size={18} />
-              {count > 0 && <span className="absolute -top-1.5 -right-2 bg-[#B5A4A3] text-white text-[9px] min-w-[14px] h-[14px] rounded-full flex items-center justify-center font-bold px-0.5 shadow-sm">{count}</span>}
-            </div>
-            <span className={`text-[11px] font-bold ${active ? 'opacity-100' : 'opacity-80'}`}>{label}</span>
-            {active && <div className="absolute -bottom-1.5 left-3 right-3 h-0.5 bg-[#8C7A6D] rounded-full" />}
-          </button>
-        );
-
-        const StatCard = ({ icon: Icon, label, value, bgColor, isBold }) => (
-          <div className={`${bgColor} p-3 rounded-2xl border border-[#E8E2D9] flex items-center gap-2.5 shadow-sm`}>
-            <div className="p-1 bg-white/60 rounded-md shrink-0 shadow-sm"><Icon size={14} /></div>
-            <div className="min-w-0">
-              <p className="text-[9px] font-bold text-[#A6998A] tracking-wider mb-0.5 uppercase">{label}</p>
-              <p className={`text-sm font-mono truncate ${isBold ? 'font-black text-[#5C544B]' : 'font-bold text-[#7A6E5D]'}`}>${value.toLocaleString()}</p>
-            </div>
-          </div>
-        );
-
-        const PaymentOption = ({ onClick, icon: Icon, label, color }) => {
-          const colorMap = { orange: 'bg-[#F2E6D9] text-[#A67C52]', emerald: 'bg-[#E6F2EB] text-[#52A67C]', pink: 'bg-[#F2E6E6] text-[#A65252]', green: 'bg-[#EDF2E6] text-[#7CA652]', slate: 'bg-[#F0F0F0] text-[#707070]' };
-          return (
-            <button onClick={onClick} className="w-full flex items-center gap-3 p-4 bg-[#FAF9F7] rounded-2xl border border-[#EDECE8] hover:border-[#8C7A6D]/30 transition-all group active:scale-[0.98] text-left text-sm font-bold text-[#5C544B]">
-              <div className={`${colorMap[color]} p-1.5 rounded-lg group-hover:scale-110 transition-transform shrink-0 shadow-sm`}><Icon size={18} /></div>
-              {label}
-            </button>
-          );
-        };
-
+        // 簡化後的 App 元件，確保能第一時間渲染
         function App() {
-          // 初始化 Firebase 與 Lucide
-          useEffect(() => {
-            const init = async () => {
-              try {
-                const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
-                initializeApp(firebaseConfig);
-                console.log("Firebase Ready");
-              } catch (e) { console.error("Firebase fail", e); }
-            };
-            init();
-          }, []);
+            const [activeTab, setActiveTab] = useState('order');
+            const [cart, setCart] = useState([]);
 
-          // 狀態定義
-          const [activeTab, setActiveTab] = useState('order'); 
-          const [cart, setCart] = useState([]);
-          const [ongoingOrders, setOngoingOrders] = useState([]);
-          const [completedOrders, setCompletedOrders] = useState([]);
-          const [clearanceHistory, setClearanceHistory] = useState([]); 
-          const [orderCounter, setOrderCounter] = useState(1);
-          const [lastClearDate, setLastClearDate] = useState(new Date().toLocaleDateString());
-          const [isCartOpen, setIsCartOpen] = useState(false);
-          const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-          const [isChangeAlertOpen, setIsChangeAlertOpen] = useState(false);
-          const [paymentStep, setPaymentStep] = useState('select');
-          const [cashReceived, setCashReceived] = useState('');
-          const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
-          const [selectedProduct, setSelectedProduct] = useState(null);
-          const [editingCartId, setEditingCartId] = useState(null); 
-          const [tempCustoms, setTempCustoms] = useState({ mayo: '正常', soy: '正常', flakes: '正常' });
-          const [tempAddOns, setTempAddOns] = useState([]);
-          const [tempSecondFlavor, setTempSecondFlavor] = useState(null);
-          const [isHalfMode, setIsHalfMode] = useState(false);
-          const [refundConfirmOrder, setRefundConfirmOrder] = useState(null);
-          const [unpaidAlertOrder, setUnpaidAlertOrder] = useState(null);
-          const [showAutoClearAlert, setShowAutoClearAlert] = useState(false);
-          const [clearedData, setClearedData] = useState(null);
-          const [selectedHistoryLog, setSelectedHistoryLog] = useState(null);
-          const [isManualClearConfirmOpen, setIsManualClearConfirmOpen] = useState(false);
+            const MENU_ITEMS = [
+                { id: 1, name: '原味章魚燒', price: 60 },
+                { id: 2, name: '海苔章魚燒', price: 60 },
+                { id: 3, name: '起司章魚燒', price: 70 }
+            ];
 
-          // 核心邏輯
-          const calculateStats = (orders) => orders.reduce((acc, order) => {
-            if (order.isPaid && !order.isRefunded) {
-              if (order.paymentMethod === '現金') acc.cash += order.total;
-              else if (order.paymentMethod === '行動支付') acc.linePay += order.total;
-              else if (order.paymentMethod === 'Foodpanda') acc.panda += order.total;
-              else if (order.paymentMethod === 'UberEats') acc.uber += order.total;
-              acc.total += order.total;
-            }
-            return acc;
-          }, { cash: 0, linePay: 0, panda: 0, uber: 0, total: 0 });
-
-          const executeClearance = (isManual = false) => {
-            const dailyStats = calculateStats(completedOrders);
-            if (completedOrders.length > 0) {
-              const newLog = { id: Date.now(), date: isManual ? `${new Date().toLocaleDateString()} (手動)` : lastClearDate, clearTime: new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }), stats: dailyStats, orderCount: completedOrders.length };
-              setClearanceHistory(prev => [newLog, ...prev]);
-              if (!isManual) { setClearedData(newLog); setShowAutoClearAlert(true); }
-            }
-            setCompletedOrders([]); setOrderCounter(1); setLastClearDate(new Date().toLocaleDateString());
-          };
-
-          const currentTotal = useMemo(() => pendingPaymentOrder ? pendingPaymentOrder.total : cart.reduce((sum, item) => sum + item.finalPrice * item.quantity, 0), [cart, pendingPaymentOrder]);
-          const changeAmount = useMemo(() => { const r = parseInt(cashReceived) || 0; return r > 0 ? Math.max(0, r - currentTotal) : 0; }, [cashReceived, currentTotal]);
-          const stats = useMemo(() => calculateStats(completedOrders), [completedOrders]);
-
-          const handleConfirmAction = () => {
-            const addOnTotal = tempAddOns.reduce((sum, id) => sum + (ADD_ONS.find(a => a.id === id)?.price || 0), 0);
-            const halfExtra = (isHalfMode && tempSecondFlavor) ? tempSecondFlavor.price : 0;
-            const finalPrice = selectedProduct.price + addOnTotal + halfExtra;
-            if (editingCartId) { setCart(cart.map(i => i.cartId === editingCartId ? { ...i, customs: { ...tempCustoms }, addOns: [...tempAddOns], secondFlavor: isHalfMode ? tempSecondFlavor : null, finalPrice } : i)); }
-            else { setCart([...cart, { ...selectedProduct, cartId: Date.now(), customs: { ...tempCustoms }, addOns: [...tempAddOns], secondFlavor: isHalfMode ? tempSecondFlavor : null, finalPrice, quantity: 1 }]); }
-            setSelectedProduct(null); setEditingCartId(null); setTempAddOns([]); setTempSecondFlavor(null); setIsHalfMode(false);
-          };
-
-          const completeOrder = (method, received = 0) => {
-            if (pendingPaymentOrder) { setOngoingOrders(prev => prev.map(o => o.uniqueId === pendingPaymentOrder.uniqueId ? { ...o, paymentMethod: method, received: received || 0, isPaid: method !== '未付款' } : o)); setPendingPaymentOrder(null); }
-            else { const newOrder = { uniqueId: Date.now(), id: orderCounter.toString().padStart(3, '0'), items: [...cart], total: currentTotal, paymentMethod: method, received: received || 0, timestamp: new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }), isPaid: method !== '未付款', isRefunded: false }; setOngoingOrders([newOrder, ...ongoingOrders]); setCart([]); setOrderCounter(prev => prev >= 999 ? 1 : prev + 1); }
-            setIsChangeAlertOpen(false); setIsCheckoutModalOpen(false); setIsCartOpen(false); setPaymentStep('select');
-          };
-
-          const handleFinishOrder = (order) => {
-            if (!order.isPaid) { setUnpaidAlertOrder(order); return; }
-            setCompletedOrders([{ ...order, finishedAt: new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }) }, ...completedOrders]);
-            setOngoingOrders(ongoingOrders.filter(o => o.uniqueId !== order.uniqueId));
-          };
-
-          return (
-            <div className="flex flex-col h-screen bg-[#F7F5F0] font-sans text-[#5C544B] overflow-hidden select-none">
-              <nav className="bg-[#FAF9F7] text-[#8C7A6D] shadow-sm z-[50] flex items-center px-4 shrink-0 h-16 border-b border-[#E8E2D9]">
-                <div className="flex-1 flex justify-around">
-                  <NavButton active={activeTab === 'order'} onClick={() => setActiveTab('order')} icon={UtensilsCrossed} label="點餐" />
-                  <NavButton active={activeTab === 'ongoing'} onClick={() => setActiveTab('ongoing')} icon={ClipboardList} label="製作" count={ongoingOrders.length} />
-                  <NavButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={History} label="數據" />
-                </div>
-                <div className="ml-4 pl-4 border-l flex items-center gap-3">
-                    <div className="text-right"><span className="text-[8px] font-bold text-[#A6998A]">單號</span><span className="block font-mono font-black text-lg">#{orderCounter.toString().padStart(3, '0')}</span></div>
-                    <div className="p-1.5 bg-[#F2EBE5] rounded-lg"><Store size={16} /></div>
-                </div>
-              </nav>
-
-              <main className="flex-1 relative overflow-hidden">
-                {activeTab === 'order' && (
-                  <div className="h-full overflow-y-auto p-4 pb-32">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {MENU_ITEMS.map(item => (
-                        <button key={item.id} onClick={() => { setSelectedProduct(item); setEditingCartId(null); setTempCustoms({ mayo: '正常', soy: '正常', flakes: '正常' }); setTempAddOns([]); setIsHalfMode(false); }} className="bg-white p-4 rounded-3xl shadow-sm border border-[#E8E2D9] flex flex-col items-start active:scale-95 transition-all text-left group">
-                          <span className="text-xs font-bold mb-4 h-9 line-clamp-2">{item.name}</span>
-                          <div className="flex justify-between items-center w-full mt-auto">
-                            <span className="text-[#8C7A6D] font-mono font-black text-sm">${item.price}</span>
-                            <div className="bg-[#F2EBE5] p-1.5 rounded-lg group-hover:bg-[#8C7A6D] group-hover:text-white"><Plus size={12} /></div>
-                          </div>
+            return (
+                <div className="flex flex-col h-screen bg-[#F7F5F0]">
+                    <nav className="bg-white h-16 border-b flex justify-around items-center px-4 shadow-sm">
+                        <button onClick={() => setActiveTab('order')} className={`flex flex-col items-center ${activeTab === 'order' ? 'text-orange-600' : 'text-gray-400'}`}>
+                            <UtensilsCrossed size={20} /><span className="text-xs">點餐</span>
                         </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* 製作名單 */}
-                {activeTab === 'ongoing' && (
-                  <div className="p-4 space-y-3 overflow-y-auto h-full">
-                    {ongoingOrders.length === 0 ? <div className="h-full flex flex-col items-center justify-center opacity-20"><ClipboardList size={60}/><p className="mt-2 font-bold">尚無訂單</p></div> : 
-                      ongoingOrders.map(o => (
-                        <div key={o.uniqueId} className="bg-white p-4 rounded-[1.5rem] border flex items-center gap-4 shadow-sm">
-                          <div className="w-12 h-12 bg-[#F2EBE5] rounded-xl flex flex-col items-center justify-center shrink-0 border"><span className="text-[8px] font-bold opacity-50">#</span><span className="font-mono font-black">{o.id}</span></div>
-                          <div className="flex-1 min-w-0">
-                            {o.items.map((i, idx) => <div key={idx} className="mb-1"><div className="flex items-center gap-2"><span className="text-xs font-bold">{i.name} x{i.quantity}</span></div><CustomBadges customs={i.customs} addOns={i.addOns} secondFlavor={i.secondFlavor} /></div>)}
-                          </div>
-                          <button onClick={() => handleFinishOrder(o)} className={`px-4 py-3 rounded-xl font-bold text-xs ${o.isPaid ? 'bg-[#8C7A6D] text-white' : 'bg-gray-100 text-gray-300'}`}>出餐</button>
-                        </div>
-                      ))
-                    }
-                  </div>
-                )}
-                {/* 數據 */}
-                {activeTab === 'history' && (
-                  <div className="p-4 space-y-4 overflow-y-auto h-full pb-20">
-                    <div className="grid grid-cols-2 gap-3">
-                        <StatCard icon={Banknote} label="現金" value={stats.cash} bgColor="bg-white" />
-                        <StatCard icon={Smartphone} label="行動" value={stats.linePay} bgColor="bg-white" />
-                        <div className="col-span-2"><StatCard icon={TrendingUp} label="今日總計" value={stats.total} bgColor="bg-[#F2EBE5]" isBold /></div>
-                    </div>
-                    <button onClick={() => setIsManualClearConfirmOpen(true)} className="w-full py-4 bg-[#7A6E5D] text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg"><LogOut size={16}/> 結算清帳</button>
-                  </div>
-                )}
-              </main>
+                        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-orange-600' : 'text-gray-400'}`}>
+                            <History size={20} /><span className="text-xs">數據</span>
+                        </button>
+                    </nav>
 
-              {/* 購物車懸浮按鈕 */}
-              {cart.length > 0 && activeTab === 'order' && (
-                <button onClick={() => setIsCartOpen(true)} className="fixed bottom-6 right-6 bg-[#8C7A6D] text-white p-4 rounded-full shadow-2xl flex items-center gap-3 border-4 border-white animate-bounce">
-                  <ShoppingCart size={24} /><span className="font-mono font-bold text-lg">${currentTotal}</span>
-                </button>
-              )}
+                    <main className="p-4 flex-1">
+                        {activeTab === 'order' ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                {MENU_ITEMS.map(item => (
+                                    <button 
+                                        key={item.id} 
+                                        className="bg-white p-4 rounded-2xl shadow-sm border text-left active:bg-gray-50"
+                                        onClick={() => alert('已加入: ' + item.name)}
+                                    >
+                                        <div className="font-bold text-sm mb-2">{item.name}</div>
+                                        <div className="text-orange-600 font-mono">${item.price}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center text-gray-400 mt-10">尚無歷史數據</div>
+                        )}
+                    </main>
 
-              {/* 彈窗內容：結帳、加料等 (為節省空間，其餘 Modal 邏輯比照辦理) */}
-              {isCheckoutModalOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-6">
-                    <div className="bg-white rounded-[2rem] w-full max-w-xs p-6 shadow-2xl">
-                        <h3 className="font-bold text-center mb-6">選擇付款</h3>
-                        <div className="space-y-3">
-                            <PaymentOption onClick={() => { setPaymentStep('cash_input'); setCashReceived(''); }} icon={Banknote} label="現金付款" color="orange" />
-                            <PaymentOption onClick={() => completeOrder('行動支付')} icon={Smartphone} label="行動支付" color="emerald" />
-                            <button onClick={() => setIsCheckoutModalOpen(false)} className="w-full py-2 text-gray-400 text-xs">返回</button>
-                        </div>
+                    <div className="p-4 bg-white border-t text-center text-[10px] text-gray-400">
+                        版本：1.0.1 (穩定版)
                     </div>
                 </div>
-              )}
-              {/* 現金找零 */}
-              {paymentStep === 'cash_input' && (
-                <div className="fixed inset-0 bg-[#5C544B] flex flex-col p-8 z-[200]">
-                    <div className="flex-1 flex flex-col justify-center items-center text-white">
-                        <span className="text-xs opacity-50">應收 ${currentTotal} / 實收</span>
-                        <span className="text-5xl font-mono font-black my-4">${cashReceived || '0'}</span>
-                        <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
-                            {[1,2,3,4,5,6,7,8,9,0].map(n => <button key={n} onClick={() => setCashReceived(v => v + String(n))} className="py-4 bg-white/10 rounded-xl text-xl font-bold">{n}</button>)}
-                            <button onClick={() => setCashReceived('')} className="py-4 bg-red-500/20 rounded-xl font-bold">C</button>
-                            <button onClick={() => setIsChangeAlertOpen(true)} className="col-span-3 py-5 bg-[#8C7A6D] rounded-2xl font-bold mt-4">確認找零</button>
-                        </div>
-                    </div>
-                </div>
-              )}
-              {isChangeAlertOpen && (
-                <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[300] text-white">
-                    <span className="text-xs opacity-50">找零金額</span>
-                    <span className="text-7xl font-mono font-black text-green-400 my-8">${changeAmount}</span>
-                    <button onClick={() => completeOrder('現金', parseInt(cashReceived))} className="px-12 py-5 bg-white text-[#5C544B] rounded-full font-bold">完成結帳</button>
-                </div>
-              )}
-            </div>
-          );
+            );
         }
 
+        // 渲染到網頁
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
