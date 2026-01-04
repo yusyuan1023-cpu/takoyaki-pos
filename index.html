@@ -1,112 +1,15 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>章魚燒雲端 POS</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>測試頁面</title>
 </head>
-<body class="bg-gray-100">
-    <div id="root"></div>
-
-    <script type="text/babel">
-        // Firebase 配置
-        const firebaseConfig = {
-            apiKey: "AIzaSyBCkW3PeRzi23aKx4LiZL68FpwJb39NubQ",
-            authDomain: "takoyaki-pos.firebaseapp.com",
-            projectId: "takoyaki-pos",
-            storageBucket: "takoyaki-pos.firebasestorage.app",
-            messagingSenderId: "819656860400",
-            appId: "1:819656860400:web:0c8d3723d2d86ee04a9835"
-        };
-
-        // 初始化
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        const MENU = [
-            { id: 1, name: "原味章魚燒", price: 60 },
-            { id: 2, name: "起司章魚燒", price: 70 },
-            { id: 3, name: "海苔章魚燒", price: 60 },
-            { id: 4, name: "芥末章魚燒", price: 60 },
-            { id: 5, name: "蜂蜜芥末", price: 60 },
-            { id: 6, name: "龍蝦沙拉", price: 80 }
-        ];
-
-        function App() {
-            const [orders, setOrders] = React.useState([]);
-            const [view, setView] = React.useState('menu'); // 'menu' 或 'list'
-
-            React.useEffect(() => {
-                const unsub = db.collection("orders")
-                    .orderBy("createdAt", "desc")
-                    .onSnapshot(snap => {
-                        setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                    });
-                return unsub;
-            }, []);
-
-            const addOrder = (item) => {
-                db.collection("orders").add({
-                    name: item.name,
-                    price: item.price,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            };
-
-            const done = (id) => db.collection("orders").doc(id).delete();
-
-            return (
-                <div className="max-w-md mx-auto min-h-screen flex flex-col">
-                    <header className="bg-orange-500 text-white p-4 text-center font-bold shadow-lg">
-                        章魚燒 POS 系統 🐙
-                    </header>
-
-                    <div className="flex bg-white border-b">
-                        <button onClick={()=>setView('menu')} className={`flex-1 py-3 ${view==='menu'?'border-b-4 border-orange-500 font-bold':''}`}>點餐</button>
-                        <button onClick={()=>setView('list')} className={`flex-1 py-3 ${view==='list'?'border-b-4 border-orange-500 font-bold':''}`}>訂單 ({orders.length})</button>
-                    </div>
-
-                    <main className="flex-1 p-4">
-                        {view === 'menu' ? (
-                            <div className="grid grid-cols-2 gap-3">
-                                {MENU.map(item => (
-                                    <button key={item.id} onClick={()=>addOrder(item)} className="bg-white p-6 rounded-xl shadow active:bg-orange-100 text-left border border-gray-200">
-                                        <div className="font-bold text-lg">{item.name}</div>
-                                        <div className="text-orange-500 font-mono">${item.price}</div>
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {orders.map(o => (
-                                    <div key={o.id} className="bg-white p-4 rounded-xl shadow flex justify-between items-center animate-fade-in">
-                                        <div>
-                                            <div className="font-bold text-lg">{o.name}</div>
-                                            <div className="text-gray-400 text-xs">${o.price}</div>
-                                        </div>
-                                        <button onClick={()=>done(o.id)} className="bg-green-500 text-white px-6 py-2 rounded-lg font-bold">完成</button>
-                                    </div>
-                                ))}
-                                {orders.length === 0 && <div className="text-center text-gray-400 mt-10">目前沒有訂單</div>}
-                            </div>
-                        )}
-                    </main>
-                    
-                    <footer className="p-2 text-center text-[10px] text-gray-400">
-                        雲端資料庫連線中...
-                    </footer>
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+<body style="background: #FF5722; color: white; text-align: center; padding: 50px; font-family: sans-serif;">
+    <h1 style="font-size: 40px;">🐙 章魚燒 POS 啟動中</h1>
+    <p style="font-size: 20px;">如果你看到這個橘色畫面，代表 GitHub 已經修好了！</p>
+    <div style="background: white; color: #333; padding: 20px; border-radius: 10px; display: inline-block; margin-top: 20px;">
+        目前狀態：網頁發布成功 ✅
+    </div>
 </body>
 </html>
