@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>章魚燒雲端 POS 系統</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 你的 Firebase 金鑰
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCkW3PeRzi23aKx4LiZL68FpwJb39NubQ",
+            authDomain: "takoyaki-pos.firebaseapp.com",
+            projectId: "takoyaki-pos",
+            storageBucket: "takoyaki-pos.firebasestorage.app",
+            messagingSenderId: "819656860400",
+            appId: "1:819656860400:web:0c8d3723d2d86ee04a9835",
+            measurementId: "G-7REF6XLCE4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db; // 讓 React 可以使用
+        window.dbFuncs = { collection, addDoc, serverTimestamp };
+    </script>
+</head>
+<body class="bg-[#F7F5F0]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // 這裡會放置你最原始的 POS 介面邏輯
+        // 為了讓你先測試網頁是否成功，我先放一個簡單的測試介面
+        function App() {
+            const [status, setStatus] = React.useState("系統載入中...");
+
+            const testOrder = async () => {
+                try {
+                    const { collection, addDoc, serverTimestamp } = window.dbFuncs;
+                    await addDoc(collection(window.db, "orders"), {
+                        item: "測試章魚燒",
+                        time: serverTimestamp()
+                    });
+                    alert("發送成功！請去 Firebase 查看");
+                } catch (e) {
+                    alert("錯誤: " + e.message);
+                }
+            };
+
+            return (
+                <div className="p-10 text-center">
+                    <h1 className="text-2xl font-bold mb-4">章魚燒 POS 雲端測試版</h1>
+                    <button 
+                        onClick={testOrder}
+                        className="bg-orange-500 text-white px-6 py-3 rounded-xl shadow-lg"
+                    >
+                        點我測試發送一筆訂單
+                    </button>
+                    <p className="mt-4 text-gray-500">如果這顆按鈕能跑，就代表網頁架設成功了！</p>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
