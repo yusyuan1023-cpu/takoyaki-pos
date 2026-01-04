@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>章魚燒雲端 POS 系統</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,8 +11,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // 你的 Firebase 金鑰
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBCkW3PeRzi23aKx4LiZL68FpwJb39NubQ",
             authDomain: "takoyaki-pos.firebaseapp.com",
@@ -22,49 +21,85 @@
             appId: "1:819656860400:web:0c8d3723d2d86ee04a9835",
             measurementId: "G-7REF6XLCE4"
         };
-
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        window.db = db; // 讓 React 可以使用
+        window.db = getFirestore(app);
         window.dbFuncs = { collection, addDoc, serverTimestamp };
     </script>
 </head>
 <body class="bg-[#F7F5F0]">
     <div id="root"></div>
-
     <script type="text/babel">
-        // 這裡會放置你最原始的 POS 介面邏輯
-        // 為了讓你先測試網頁是否成功，我先放一個簡單的測試介面
-        function App() {
-            const [status, setStatus] = React.useState("系統載入中...");
+        const MENU_ITEMS = [
+            { id: 1, name: '原味章魚燒', price: 60 },
+            { id: 2, name: '海苔章魚燒', price: 60 },
+            { id: 3, name: '芥末章魚燒', price: 60 },
+            { id: 4, name: '起司章魚燒', price: 70 },
+            { id: 5, name: '龍蝦沙拉章魚燒', price: 80 }
+        ];
 
-            const testOrder = async () => {
+        function App() {
+            const [cart, setCart] = React.useState([]);
+            
+            const checkout = async () => {
+                if (cart.length === 0) return;
+                const total = cart.reduce((sum, item) => sum + item.price, 0);
                 try {
                     const { collection, addDoc, serverTimestamp } = window.dbFuncs;
                     await addDoc(collection(window.db, "orders"), {
-                        item: "測試章魚燒",
-                        time: serverTimestamp()
+                        items: cart,
+                        total: total,
+                        createdAt: serverTimestamp(),
+                        status: "pending"
                     });
-                    alert("發送成功！請去 Firebase 查看");
+                    alert(`✅ 結帳成功！總金額 $${total}\n訂單已同步至雲端。`);
+                    setCart([]);
                 } catch (e) {
-                    alert("錯誤: " + e.message);
+                    alert("存檔失敗：" + e.message);
                 }
             };
 
             return (
-                <div className="p-10 text-center">
-                    <h1 className="text-2xl font-bold mb-4">章魚燒 POS 雲端測試版</h1>
-                    <button 
-                        onClick={testOrder}
-                        className="bg-orange-500 text-white px-6 py-3 rounded-xl shadow-lg"
-                    >
-                        點我測試發送一筆訂單
-                    </button>
-                    <p className="mt-4 text-gray-500">如果這顆按鈕能跑，就代表網頁架設成功了！</p>
+                <div className="flex flex-col h-screen max-w-md mx-auto bg-white shadow-xl overflow-hidden">
+                    <header className="bg-orange-500 text-white p-5 text-center font-bold text-xl shadow-md">🐙 章魚燒點餐機</header>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {MENU_ITEMS.map(item => (
+                            <button 
+                                key={item.id} 
+                                onClick={() => setCart([...cart, item])} 
+                                className="w-full flex justify-between p-5 bg-gray-50 rounded-2xl border-2 border-transparent active:border-orange-500 active:bg-orange-50 transition-all"
+                            >
+                                <span className="font-bold text-lg text-gray-700">{item.name}</span>
+                                <span className="text-orange-600 font-mono font-bold">$ {item.price}</span>
+                            </button>
+                        ))}
+                        {cart.length > 0 && (
+                            <div className="pt-4 border-t border-dashed border-gray-300">
+                                <p className="text-sm text-gray-400 mb-2">已選項目：</p>
+                                {cart.map((i, idx) => (
+                                    <div key={idx} className="text-sm text-gray-600 flex justify-between">
+                                        <span>{i.name}</span>
+                                        <span>$ {i.price}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div className="p-6 border-t-2 border-gray-100 bg-white">
+                        <div className="flex justify-between mb-4 font-black text-xl text-gray-800">
+                            <span>小計 ({cart.length})</span>
+                            <span className="text-orange-600">$ {cart.reduce((sum, i) => sum + i.price, 0)}</span>
+                        </div>
+                        <button 
+                            onClick={checkout} 
+                            disabled={cart.length === 0}
+                            className={`w-full py-5 rounded-2xl font-black text-xl shadow-lg transition-all ${cart.length > 0 ? 'bg-orange-500 text-white active:scale-95' : 'bg-gray-300 text-gray-500'}`}
+                        >
+                            完成結帳
+                        </button>
+                    </div>
                 </div>
             );
         }
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
