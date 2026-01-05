@@ -3,29 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>章魚燒 POS - 專業盒裝版</title>
+    <title>章魚燒 POS - 彈跳方框專業版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; overscroll-behavior: none; }
         
-        /* 彈出框樣式改為圓角方框 */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        /* 方塊彈窗樣式 */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
         .modal.active { display: flex; }
-        .modal-box { background: white; width: 100%; max-width: 400px; border-radius: 1.5rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); max-height: 85vh; overflow-y: auto; position: relative; border: 1px solid #eee; }
+        .modal-box { background: white; width: 100%; max-width: 400px; border-radius: 2rem; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto; }
         
-        .option-btn { border: 2px solid #F3F4F6; padding: 10px; border-radius: 0.75rem; text-align: center; font-size: 0.825rem; cursor: pointer; transition: 0.2s; }
+        .option-btn { border: 2px solid #F3F4F6; padding: 10px; border-radius: 1rem; text-align: center; font-size: 0.825rem; cursor: pointer; transition: 0.2s; }
         .option-btn.active { border-color: #8C7A6D; background: #FDFBF9; color: #8C7A6D; font-weight: bold; }
         
-        /* 算盤按鈕 */
-        .calc-btn { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 1rem; font-weight: 900; font-size: 1.5rem; height: 60px; display: flex; align-items: center; justify-content: center; }
-        .calc-btn:active { background: #eee; }
+        .calc-btn { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 1.25rem; font-weight: 900; font-size: 1.5rem; height: 65px; display: flex; align-items: center; justify-content: center; }
         
-        /* 退款按鈕背景化 */
-        .order-card { position: relative; overflow: hidden; }
-        .refund-trigger { position: absolute; right: 0; top: 0; bottom: 0; width: 60px; background: #FEE2E2; color: #EF4444; display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; }
-        .order-card:active .refund-trigger { opacity: 1; }
+        /* 退款按鈕蓋在後方邏輯 */
+        .refund-container { position: relative; }
+        .refund-btn-hidden { position: absolute; right: 0; top: 0; bottom: 0; background: #EF4444; color: white; border-radius: 1rem; display: flex; align-items: center; justify-content: center; width: 80px; z-index: 1; }
+        .order-front { position: relative; background: white; z-index: 2; transition: transform 0.3s ease; }
+        .order-front.open { transform: translateX(-85px); }
     </style>
 </head>
 <body class="bg-[#F7F5F0] text-[#5C544B]">
@@ -35,14 +34,9 @@
                 <span class="text-[10px] font-bold text-gray-400">ORDER NO.</span>
                 <span id="order-id-display" class="text-xl font-black font-mono text-[#8C7A6D]">#001</span>
             </div>
-            <div class="flex gap-6">
+            <div class="flex gap-8">
                 <button onclick="showTab('order')" id="nav-order" class="flex flex-col items-center text-[#8C7A6D]">
                     <i data-lucide="utensils-crossed" class="w-5 h-5"></i><span class="text-[10px] font-bold">點餐</span>
-                </button>
-                <button onclick="showTab('cart')" id="nav-cart" class="flex flex-col items-center text-gray-300 relative">
-                    <i data-lucide="shopping-basket" class="w-5 h-5"></i>
-                    <span id="cart-badge" class="absolute -top-1 -right-2 bg-[#8C7A6D] text-white text-[9px] w-4 h-4 rounded-full hidden flex items-center justify-center">0</span>
-                    <span class="text-[10px] font-bold">明細</span>
                 </button>
                 <button onclick="showTab('ongoing')" id="nav-ongoing" class="flex flex-col items-center text-gray-300 relative">
                     <i data-lucide="flame" class="w-5 h-5"></i>
@@ -58,17 +52,31 @@
         <main id="main-content" class="flex-1 overflow-y-auto p-4 pb-32"></main>
 
         <div id="bottom-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 pb-8 flex justify-between items-center shadow-lg">
-            <div class="flex flex-col">
-                <span class="text-[10px] text-gray-400 font-bold uppercase">總計金額 Total</span>
+            <div onclick="openCartModal()" class="flex flex-col cursor-pointer">
+                <span class="text-[10px] text-orange-500 font-bold animate-pulse">點此查看購物車明細 ▼</span>
                 <span class="text-2xl font-black font-mono text-[#8C7A6D]">$<span id="total-amount">0</span></span>
             </div>
-            <button onclick="openPaymentMenu()" class="bg-[#8C7A6D] text-white px-10 py-4 rounded-2xl font-bold shadow-lg active:scale-95">結帳 / 付款</button>
+            <button onclick="openPaymentMenu()" class="bg-[#8C7A6D] text-white px-10 py-4 rounded-2xl font-bold shadow-lg">結帳付款</button>
+        </div>
+    </div>
+
+    <div id="cart-modal" class="modal">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-black text-xl">購物車明細</h3>
+                <button onclick="closeModals()"><i data-lucide="x"></i></button>
+            </div>
+            <div id="cart-items-list" class="space-y-3 mb-6"></div>
+            <div class="flex gap-2">
+                <button onclick="cart=[];renderCartInModal();closeModals();" class="flex-1 py-3 text-red-500 font-bold border rounded-xl">清空</button>
+                <button onclick="closeModals()" class="flex-[2] bg-gray-100 py-3 rounded-xl font-bold">繼續加點</button>
+            </div>
         </div>
     </div>
 
     <div id="option-modal" class="modal">
         <div class="modal-box">
-            <h3 class="font-black text-xl mb-4 text-[#8C7A6D]">口味設定</h3>
+            <h3 class="font-black text-xl mb-4">口味客製化</h3>
             <div class="space-y-6">
                 <section>
                     <p class="text-[10px] font-bold text-gray-400 mb-2 uppercase">雙拼 (起司/金沙+5, 龍蝦+10)</p>
@@ -80,32 +88,25 @@
                     <div id="addon-grid" class="grid grid-cols-2 gap-2"></div>
                 </section>
             </div>
-            <div class="flex gap-2 mt-8">
-                <button onclick="closeModals()" class="flex-1 py-4 text-gray-400 font-bold border rounded-xl">取消</button>
-                <button onclick="saveItemToCart()" class="flex-[2] bg-[#8C7A6D] text-white py-4 rounded-xl font-bold">確認加入</button>
-            </div>
+            <button onclick="saveItemToCart()" class="w-full bg-[#8C7A6D] text-white py-4 rounded-xl font-bold mt-8 shadow-lg">加入購物車</button>
         </div>
     </div>
 
     <div id="pay-modal" class="modal">
         <div class="modal-box">
             <div id="pay-select-screen">
-                <h3 class="font-black text-xl mb-6">選擇付款</h3>
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    <button onclick="startCalc('現金')" class="pay-grid-btn border-2 p-4 rounded-xl font-bold flex flex-col items-center gap-2"><i data-lucide="banknote"></i>現金</button>
-                    <button onclick="submitOrder('行動支付')" class="pay-grid-btn border-2 p-4 rounded-xl font-bold flex flex-col items-center gap-2"><i data-lucide="smartphone"></i>支付</button>
-                    <button onclick="submitOrder('Foodpanda')" class="pay-grid-btn border-2 p-4 rounded-xl font-bold flex flex-col items-center gap-2"><i data-lucide="truck"></i>Panda</button>
-                    <button onclick="submitOrder('UberEats')" class="pay-grid-btn border-2 p-4 rounded-xl font-bold flex flex-col items-center gap-2"><i data-lucide="store"></i>Uber</button>
-                    <button id="btn-pending" onclick="submitOrder('待付款')" class="col-span-2 py-4 text-orange-500 bg-orange-50 rounded-xl font-bold">先出餐 (待付款)</button>
+                <h3 class="font-black text-xl mb-6">選擇付款方式</h3>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button onclick="startCalc('現金')" class="p-4 border-2 rounded-xl font-bold flex flex-col items-center gap-2"><i data-lucide="banknote"></i>現金</button>
+                    <button onclick="submitOrder('行動支付')" class="p-4 border-2 rounded-xl font-bold flex flex-col items-center gap-2"><i data-lucide="smartphone"></i>支付</button>
+                    <button onclick="submitOrder('Foodpanda')" class="p-4 border-2 rounded-xl font-bold flex flex-col items-center gap-2"><i data-lucide="truck"></i>Panda</button>
+                    <button onclick="submitOrder('UberEats')" class="p-4 border-2 rounded-xl font-bold flex flex-col items-center gap-2"><i data-lucide="store"></i>Uber</button>
+                    <button id="btn-pending" onclick="submitOrder('待付款')" class="col-span-2 py-4 text-orange-500 bg-orange-50 rounded-xl font-bold">稍後付款 (先出餐)</button>
                 </div>
             </div>
-
             <div id="calc-screen" class="hidden">
                 <div class="bg-orange-500 p-4 rounded-xl mb-4 text-white">
-                    <div class="flex justify-between text-xs font-bold mb-1">
-                        <span>應收 $<span id="calc-due">0</span></span>
-                        <span>找零</span>
-                    </div>
+                    <div class="flex justify-between text-xs font-bold mb-1"><span>應收 $<span id="calc-due">0</span></span><span>找零</span></div>
                     <div class="flex justify-between items-end">
                         <div class="text-3xl font-black font-mono" id="calc-input">0</div>
                         <div class="text-3xl font-black font-mono" id="calc-change">$0</div>
@@ -119,7 +120,7 @@
                     <button onclick="submitOrder('現金')" class="calc-btn bg-orange-600 text-white border-none">OK</button>
                 </div>
             </div>
-            <button onclick="closeModals()" class="w-full mt-4 py-2 text-gray-400 font-bold text-xs">返回</button>
+            <button onclick="closeModals()" class="w-full mt-4 py-2 text-gray-400 font-bold text-xs">取消</button>
         </div>
     </div>
 
@@ -132,24 +133,23 @@
             {id:9, name:'起司章魚燒', price:70}, {id:10, name:'龍蝦沙拉', price:80}
         ];
         const ADDONS = [{id:'spicy', name:'加辣味', p:5}, {id:'seaweed', name:'加海苔', p:5}, {id:'wasabi', name:'加芥末', p:5}, {id:'cheese', name:'加起司', p:10}];
-        const CUSTOMS = ['美乃滋','柴魚片','醬油'];
-        const LEVELS = ['正常','少','多','不要'];
+        const CUSTOMS = ['美乃滋','柴魚片','醬油'], LEVELS = ['正常','少','多','不要'];
 
         let cart = [], ongoing = [], history = [], closedLogs = [], orderNum = 1;
         let tempItem = null, payRef = null, calcVal = "";
 
         function init() {
-            const saved = JSON.parse(localStorage.getItem('pos_box_storage') || '{}');
+            const saved = JSON.parse(localStorage.getItem('pos_v4') || '{}');
             if(saved.day === new Date().toLocaleDateString()) {
                 ongoing = saved.ongoing || []; history = saved.history || []; orderNum = saved.orderNum || 1;
             }
-            closedLogs = JSON.parse(localStorage.getItem('closed_logs_box') || '[]');
+            closedLogs = JSON.parse(localStorage.getItem('closed_v4') || '[]');
             showTab('order');
             setInterval(checkMidnightClear, 60000);
         }
 
         function checkMidnightClear() {
-            const saved = JSON.parse(localStorage.getItem('pos_box_storage') || '{}');
+            const saved = JSON.parse(localStorage.getItem('pos_v4') || '{}');
             if(saved.day && saved.day !== new Date().toLocaleDateString()) {
                 executeClear(saved.day, saved.history);
                 location.reload();
@@ -160,58 +160,71 @@
             const main = document.getElementById('main-content');
             document.querySelectorAll('nav button').forEach(b => b.classList.replace('text-[#8C7A6D]', 'text-gray-300'));
             document.getElementById('nav-'+t).classList.replace('text-gray-300', 'text-[#8C7A6D]');
-            document.getElementById('bottom-bar').style.display = (t==='order'||t==='cart') ? 'flex' : 'none';
+            document.getElementById('bottom-bar').style.display = (t==='order') ? 'flex' : 'none';
 
             if(t==='order') {
                 main.innerHTML = `<div class="grid grid-cols-2 gap-3">` + MENU.map(f => `
-                    <div onclick="openEditor(${f.id})" class="bg-white p-5 rounded-2xl shadow-sm border active:bg-gray-50">
+                    <div onclick="openEditor(${f.id})" class="bg-white p-6 rounded-3xl shadow-sm border active:bg-gray-50">
                         <div class="font-black text-sm mb-1">${f.name}</div>
                         <div class="text-[#8C7A6D] font-black font-mono">$${f.price}</div>
                     </div>`).join('') + `</div>`;
-            } else if(t==='cart') {
-                main.innerHTML = `<h2 class="font-black mb-4">購物車明細</h2>` + (cart.length ? cart.map((i, idx) => `
-                    <div onclick="openEditor(${i.id}, ${idx})" class="bg-white p-4 rounded-2xl mb-3 shadow-sm border-l-8 border-[#8C7A6D]">
-                        <div class="flex justify-between font-bold">
-                            <span>${i.name}${i.hName?'拼'+i.hName:''}</span>
-                            <span class="font-mono">$${i.finalTotal}</span>
-                        </div>
-                        <div class="text-[10px] text-gray-400 mt-1">${i.fullDesc}</div>
-                    </div>`).join('') : `<p class="text-center py-20 text-gray-300">購物車目前是空的</p>`);
             } else if(t==='ongoing') {
                 main.innerHTML = ongoing.map((o, idx) => `
-                    <div class="bg-white p-5 rounded-2xl mb-4 shadow-sm border">
-                        <div class="flex justify-between border-b pb-2 mb-3 font-black">
-                            <span>#${String(o.id).padStart(3,'0')}</span>
-                            <span class="text-xs ${o.status==='未付'?'text-red-500':'text-green-600'}">${o.status}</span>
+                    <div class="bg-white p-5 rounded-3xl mb-4 shadow-sm border relative">
+                        <div class="flex justify-between border-b pb-2 mb-3">
+                            <span class="font-black">#${String(o.id).padStart(3,'0')} <span class="text-[10px] text-gray-400 font-normal">${o.time}</span></span>
+                            <span class="text-xs font-bold ${o.status==='未付'?'text-red-500':'text-green-600'}">${o.status}</span>
                         </div>
-                        <div class="text-xs space-y-2 mb-4">${o.items.map(i => `• ${i.name}${i.hName?'拼'+i.hName:''} (${i.fullDesc})`).join('')}</div>
-                        <button onclick="finishOrder(${idx})" class="w-full py-3 bg-[#8C7A6D] text-white rounded-xl font-bold">完成出餐</button>
+                        <div class="text-xs space-y-2 mb-4">${o.items.map(i => `• ${i.name}${i.hName?'拼'+i.hName:''} <span class="text-gray-400">(${i.fullDesc})</span>`).join('<br>')}</div>
+                        <div class="flex gap-2">
+                            ${o.status==='未付' ? `<button onclick="openRepay(${idx})" class="flex-1 py-3 bg-orange-500 text-white rounded-xl font-bold">補付款</button>` : ''}
+                            <button onclick="finishOrder(${idx})" class="flex-1 py-3 bg-[#8C7A6D] text-white rounded-xl font-bold">完成</button>
+                        </div>
                     </div>`).join('');
             } else if(t==='history') {
                 const total = history.reduce((s,o)=>s+o.total,0);
                 main.innerHTML = `
                     <div class="bg-white p-6 rounded-3xl text-center mb-6 shadow-sm border">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">今日總營收</p>
+                        <p class="text-[10px] text-gray-400 font-bold uppercase">今日總營收</p>
                         <p class="text-4xl font-black text-[#8C7A6D] font-mono">$${total}</p>
-                        <button onclick="executeClear()" class="mt-4 text-[10px] bg-gray-100 px-4 py-2 rounded-full font-bold">每日清帳</button>
                     </div>
-                    <div class="space-y-2 mb-6">${closedLogs.map(l => `<div onclick="alert('現金:$${l.stats.現金}\\n支付:$${l.stats.行動支付}')" class="bg-white p-4 rounded-xl text-xs flex justify-between shadow-sm"><span>${l.date}</span><span class="font-bold">$${l.stats.total} ❯</span></div>`).join('')}</div>
-                    <h3 class="font-black text-sm mb-3">今日訂單 (按住出現退款)</h3>
-                    ${history.map((o, idx) => `
-                        <div class="order-card bg-white p-4 rounded-xl text-[10px] mb-2 shadow-sm border">
-                            <div class="flex justify-between font-black mb-1"><span>#${o.id} - ${o.pay}</span><span class="text-sm">$${o.total}</span></div>
-                            <div class="text-gray-400">${o.items.map(i => i.name).join(', ')}</div>
-                            <div onclick="refundOrder(${idx})" class="refund-trigger"><i data-lucide="trash-2" class="w-5 h-5"></i></div>
-                        </div>`).join('')}`;
+                    <h3 class="font-black text-sm mb-3">歷史明細 (點擊退款)</h3>
+                    <div class="space-y-3">${history.map((o, idx) => `
+                        <div class="refund-container">
+                            <div onclick="confirmRefund(${idx})" class="refund-btn-hidden font-bold text-sm">退款</div>
+                            <div onclick="this.classList.toggle('open')" class="order-front bg-white p-4 rounded-2xl shadow-sm border flex justify-between items-center">
+                                <div>
+                                    <p class="font-black text-xs">#${o.id} - ${o.pay}</p>
+                                    <p class="text-[10px] text-gray-400">${o.items.map(i=>i.name).join(', ')}</p>
+                                </div>
+                                <span class="font-black font-mono">$${o.total}</span>
+                            </div>
+                        </div>`).join('')}</div>`;
             }
             lucide.createIcons();
             updateUI();
         }
 
+        function openCartModal() {
+            if(!cart.length) return alert('購物車還沒有東西喔！');
+            renderCartInModal();
+            document.getElementById('cart-modal').classList.add('active');
+        }
+
+        function renderCartInModal() {
+            document.getElementById('cart-items-list').innerHTML = cart.map((i, idx) => `
+                <div class="bg-gray-50 p-3 rounded-xl border-l-4 border-[#8C7A6D]">
+                    <div class="flex justify-between font-bold text-sm">
+                        <span>${i.name}${i.hName?'拼'+i.hName:''}</span>
+                        <span class="font-mono">$${i.finalTotal}</span>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-1">${i.fullDesc}</p>
+                </div>`).join('');
+        }
+
         function openEditor(id, cartIdx = -1) {
             const base = MENU.find(m => m.id === id);
-            tempItem = cartIdx === -1 ? { ...base, hId: null, customs: {'美乃滋':'正常','柴魚片':'正常','醬油':'正常'}, addons: [], cartIdx } 
-                                     : { ...cart[cartIdx], cartIdx };
+            tempItem = { ...base, hId: null, customs: {'美乃滋':'正常','柴魚片':'正常','醬油':'正常'}, addons: [], cartIdx };
             renderEditor();
             document.getElementById('option-modal').classList.add('active');
         }
@@ -222,7 +235,7 @@
                     let fee = (m.id===8||m.id===9) ? "+5" : (m.id===10 ? "+10" : "0");
                     return `<div onclick="upd('h',${m.id})" class="option-btn ${tempItem.hId===m.id?'active':''}">${m.name.replace('章魚燒','')}${fee!=='0'?'($'+fee+')':''}</div>`;
                 }).join('');
-            document.getElementById('custom-fields').innerHTML = CUSTOMS.map(c => `<div><p class="text-[10px] font-bold text-gray-400 mb-1">${c}</p><div class="grid grid-cols-4 gap-2">${LEVELS.map(l => `<div onclick="upd('c','${c}','${l}')" class="option-btn ${tempItem.customs[c]===l?'active':''}">${l}</div>`).join('')}</div></div>`).join('');
+            document.getElementById('custom-fields').innerHTML = CUSTOMS.map(c => `<div><p class="text-[10px] font-bold text-gray-400 mb-1 uppercase">${c}</p><div class="grid grid-cols-4 gap-2">${LEVELS.map(l => `<div onclick="upd('c','${c}','${l}')" class="option-btn ${tempItem.customs[c]===l?'active':''}">${l}</div>`).join('')}</div></div>`).join('');
             document.getElementById('addon-grid').innerHTML = ADDONS.map(a => `<div onclick="upd('a','${a.id}')" class="option-btn ${tempItem.addons.includes(a.id)?'active':''}">${a.name}(+$${a.p})</div>`).join('');
         }
 
@@ -234,21 +247,20 @@
         }
 
         function saveItemToCart() {
-            let baseP = tempItem.price;
-            let hName = "", hFee = 0;
+            let baseP = tempItem.price, hName = "", hFee = 0;
             if(tempItem.hId) {
                 hName = MENU.find(m => m.id === tempItem.hId).name.replace('章魚燒','');
                 if(tempItem.hId === 8 || tempItem.hId === 9) hFee = 5; else if(tempItem.hId === 10) hFee = 10;
             }
             let addonFee = tempItem.addons.reduce((s, aId) => s + ADDONS.find(a => a.id === aId).p, 0);
-            const desc = Object.entries(tempItem.customs).map(([k,v])=>v!=='正常'?k+v:'').filter(v=>v).join(', ') + (tempItem.addons.length ? ' | 加購:' + tempItem.addons.map(a=>ADDONS.find(ad=>ad.id===a).name).join(',') : '');
-            const final = { ...tempItem, finalTotal: baseP + hFee + addonFee, hName, fullDesc: desc || '標配' };
-            if(tempItem.cartIdx > -1) cart[tempItem.cartIdx] = final; else cart.push(final);
-            closeModals(); showTab('order');
+            const desc = Object.entries(tempItem.customs).map(([k,v])=>v!=='正常'?k+v:'').filter(v=>v).join(', ') + (tempItem.addons.length ? ' | 加:' + tempItem.addons.map(a=>ADDONS.find(ad=>ad.id===a).name).join(',') : '');
+            cart.push({ ...tempItem, finalTotal: baseP + hFee + addonFee, hName, fullDesc: desc || '標配' });
+            closeModals(); updateUI();
         }
 
         function openPaymentMenu() { if(!cart.length) return; payRef = { type: 'new' }; document.getElementById('pay-select-screen').classList.remove('hidden'); document.getElementById('calc-screen').classList.add('hidden'); document.getElementById('pay-modal').classList.add('active'); }
-        
+        function openRepay(idx) { payRef = { type: 'repay', idx }; document.getElementById('pay-select-screen').classList.remove('hidden'); document.getElementById('calc-screen').classList.add('hidden'); document.getElementById('pay-modal').classList.add('active'); }
+
         function startCalc(m) {
             const due = payRef.type === 'new' ? cart.reduce((s,i)=>s+i.finalTotal,0) : ongoing[payRef.idx].total;
             document.getElementById('calc-due').innerText = due;
@@ -275,33 +287,29 @@
             if(payRef.type === 'new') {
                 ongoing.push({ id: orderNum++, items: [...cart], total: due, pay: method, status: method==='待付款'?'未付':'已付', time: new Date().toLocaleTimeString() });
                 cart = [];
+            } else {
+                ongoing[payRef.idx].pay = method; ongoing[payRef.idx].status = '已付';
             }
             closeModals(); showTab('order'); save();
         }
 
-        function finishOrder(idx) { history.unshift(ongoing[idx]); ongoing.splice(idx,1); showTab('ongoing'); save(); }
-
-        function refundOrder(idx) { if(confirm('確定退款？')) { history.splice(idx,1); showTab('history'); save(); } }
-
-        function executeClear(dateStr = new Date().toLocaleDateString(), histData = history) {
-            const stats = histData.reduce((acc, o) => { acc.total += o.total; acc[o.pay] = (acc[o.pay]||0)+o.total; return acc; }, { total:0, '現金':0, '行動支付':0, 'Foodpanda':0, 'UberEats':0 });
-            closedLogs.unshift({ date: dateStr, stats });
-            localStorage.setItem('closed_logs_box', JSON.stringify(closedLogs));
-            history = []; orderNum = 1; save(); showTab('history');
+        function finishOrder(idx) { 
+            if(ongoing[idx].status === '未付') return alert('此單尚未付款！');
+            history.unshift(ongoing[idx]); ongoing.splice(idx,1); showTab('ongoing'); save(); 
         }
+
+        function confirmRefund(idx) { if(confirm('確定退款？金額將從營收扣除')) { history.splice(idx,1); showTab('history'); save(); } }
 
         function closeModals() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
         function updateUI() {
             const total = cart.reduce((s,i)=>s+i.finalTotal, 0);
             document.getElementById('total-amount').innerText = total;
-            document.getElementById('cart-badge').innerText = cart.length;
-            document.getElementById('cart-badge').classList.toggle('hidden', !cart.length);
             document.getElementById('ongoing-badge').innerText = ongoing.length;
             document.getElementById('ongoing-badge').classList.toggle('hidden', !ongoing.length);
             document.getElementById('order-id-display').innerText = '#' + String(orderNum).padStart(3, '0');
         }
 
-        function save() { localStorage.setItem('pos_box_storage', JSON.stringify({ day: new Date().toLocaleDateString(), ongoing, history, orderNum })); }
+        function save() { localStorage.setItem('pos_v4', JSON.stringify({ day: new Date().toLocaleDateString(), ongoing, history, orderNum })); }
 
         init();
     </script>
