@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>章魚燒 POS - 專業運營版</title>
+    <title>章魚燒 POS - 專業運營最終版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -44,7 +44,7 @@
 
         <div id="bottom-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 pb-8 flex justify-between items-center shadow-lg">
             <div onclick="showTab('cart')" class="flex flex-col cursor-pointer">
-                <span class="text-[10px] text-gray-400 font-bold uppercase">購物車明細 (點擊查看)</span>
+                <span class="text-[10px] text-gray-400 font-bold uppercase">點擊查看購物車明細</span>
                 <span class="text-2xl font-black font-mono text-[#8C7A6D]">$<span id="total-amount">0</span></span>
             </div>
             <button onclick="openPaymentMenu()" class="bg-[#8C7A6D] text-white px-10 py-4 rounded-2xl font-bold shadow-lg">結帳送單</button>
@@ -54,28 +54,28 @@
     <div id="option-modal" class="modal">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-4">
-                <h3 id="modal-title" class="font-black text-xl">客製化</h3>
+                <h3 id="modal-title" class="font-black text-xl">口味客製化</h3>
                 <button onclick="closeModals()"><i data-lucide="x"></i></button>
             </div>
-            <div class="space-y-5">
+            <div class="space-y-6">
                 <section>
-                    <p class="text-[10px] font-bold text-gray-400 mb-2">雙拼選擇</p>
+                    <p class="text-[10px] font-bold text-gray-400 mb-2 uppercase">雙拼第二口味 (選起司/金沙+$5, 龍蝦+$10)</p>
                     <div id="half-grid" class="grid grid-cols-3 gap-2"></div>
                 </section>
                 <section id="custom-fields" class="space-y-4"></section>
                 <section>
-                    <p class="text-[10px] font-bold text-gray-400 mb-2">額外加購</p>
+                    <p class="text-[10px] font-bold text-gray-400 mb-2 uppercase">加購項目</p>
                     <div id="addon-grid" class="grid grid-cols-2 gap-2"></div>
                 </section>
             </div>
-            <button onclick="saveItemToCart()" class="w-full bg-[#8C7A6D] text-white py-4 rounded-2xl font-bold mt-8">更新購物車</button>
+            <button onclick="saveItemToCart()" class="w-full bg-[#8C7A6D] text-white py-4 rounded-2xl font-bold mt-8">加入購物車</button>
         </div>
     </div>
 
     <div id="pay-modal" class="modal">
         <div class="modal-content">
             <div id="pay-select-screen">
-                <h3 class="font-black text-xl mb-6">選擇付款</h3>
+                <h3 class="font-black text-xl mb-6">選擇付款方式</h3>
                 <div class="grid grid-cols-2 gap-3 mb-6">
                     <button onclick="startCalc('現金')" class="pay-grid-btn"><i data-lucide="banknote"></i>現金</button>
                     <button onclick="submitOrder('行動支付')" class="pay-grid-btn"><i data-lucide="smartphone"></i>支付</button>
@@ -86,11 +86,12 @@
             </div>
             <div id="calc-screen" class="hidden">
                 <div class="bg-gray-100 p-4 rounded-2xl mb-4 flex justify-between items-center">
-                    <div><p class="text-[10px] font-bold text-gray-400">應收 $<span id="calc-due">0</span></p>
-                         <p class="text-3xl font-black font-mono" id="calc-input">0</p></div>
-                    <div class="text-right text-orange-500"><p class="text-[10px] font-bold">找零</p>
+                    <div><p class="text-[10px] font-bold text-gray-400 uppercase">Total Due</p>
+                         <p class="text-3xl font-black font-mono">$<span id="calc-due">0</span></p></div>
+                    <div class="text-right text-orange-500"><p class="text-[10px] font-bold uppercase">Change</p>
                          <p class="text-3xl font-black font-mono" id="calc-change">$0</p></div>
                 </div>
+                <div class="text-2xl font-black text-center mb-4 font-mono tracking-widest text-[#8C7A6D]" id="calc-input">0</div>
                 <div class="grid grid-cols-3 gap-2 mb-2">
                     <button onclick="quickAdd(100)" class="bg-gray-200 py-3 rounded-xl font-bold">100</button>
                     <button onclick="quickAdd(500)" class="bg-gray-200 py-3 rounded-xl font-bold">500</button>
@@ -110,38 +111,41 @@
 
     <script>
         const MENU = [
-            {id:1, name:'原味章魚燒', price:60, hPrice:0}, {id:2, name:'海苔章魚燒', price:60, hPrice:0},
-            {id:3, name:'芥末章魚燒', price:60, hPrice:0}, {id:4, name:'梅子章魚燒', price:60, hPrice:0},
-            {id:5, name:'蜂蜜芥末', price:60, hPrice:0}, {id:6, name:'咖哩章魚燒', price:60, hPrice:0},
-            {id:7, name:'辣味章魚燒', price:60, hPrice:0}, {id:8, name:'金沙鹹蛋黃', price:70, hPrice:0},
-            {id:9, name:'起司章魚燒', price:70, hPrice:5}, {id:10, name:'龍蝦沙拉', price:80, hPrice:10}
+            {id:1, name:'原味章魚燒', price:60}, {id:2, name:'海苔章魚燒', price:60},
+            {id:3, name:'芥末章魚燒', price:60}, {id:4, name:'梅子章魚燒', price:60},
+            {id:5, name:'蜂蜜芥末', price:60}, {id:6, name:'咖哩章魚燒', price:60},
+            {id:7, name:'辣味章魚燒', price:60}, {id:8, name:'金沙鹹蛋黃', price:70},
+            {id:9, name:'起司章魚燒', price:70}, {id:10, name:'龍蝦沙拉', price:80}
         ];
-        const ADDONS = [{id:'spicy', name:'加辣', p:5}, {id:'seaweed', name:'加海苔', p:5}, {id:'wasabi', name:'加芥末', p:5}, {id:'cheese', name:'加起司', p:10}];
+        const ADDONS = [
+            {id:'spicy', name:'加辣味', p:5}, {id:'seaweed', name:'加海苔', p:5}, 
+            {id:'wasabi', name:'加芥末', p:5}, {id:'cheese', name:'加起司', p:10}
+        ];
         const CUSTOMS = ['美乃滋','柴魚片','醬油'];
         const LEVELS = ['正常','少','多','不要'];
 
-        let cart = [], ongoing = [], history = [], closedLogs = [], orderNum = 1, currentTab = 'order';
+        let cart = [], ongoing = [], history = [], closedLogs = [], orderNum = 1;
         let tempItem = null, payRef = null, calcVal = "0";
 
         function init() {
-            const saved = JSON.parse(localStorage.getItem('pos_data') || '{}');
+            const saved = JSON.parse(localStorage.getItem('pos_storage') || '{}');
             if(saved.day === new Date().toLocaleDateString()) {
                 ongoing = saved.ongoing || []; history = saved.history || []; orderNum = saved.orderNum || 1;
-            } else if(saved.day) {
-                doClearDay(saved.day, saved.history); // 跨日自動清帳
             }
             closedLogs = JSON.parse(localStorage.getItem('closed_logs') || '[]');
             showTab('order');
-            setInterval(autoCheckTime, 60000);
+            setInterval(checkMidnightClear, 60000);
         }
 
-        function autoCheckTime() {
-            const now = new Date();
-            if(now.getHours() === 0 && now.getMinutes() === 0) location.reload(); 
+        function checkMidnightClear() {
+            const saved = JSON.parse(localStorage.getItem('pos_storage') || '{}');
+            if(saved.day && saved.day !== new Date().toLocaleDateString()) {
+                executeClear(saved.day, saved.history);
+                location.reload();
+            }
         }
 
         function showTab(t) {
-            currentTab = t;
             const main = document.getElementById('main-content');
             document.querySelectorAll('nav button').forEach(b => b.classList.replace('text-[#8C7A6D]', 'text-gray-300'));
             document.getElementById('nav-'+t).classList.replace('text-gray-300', 'text-[#8C7A6D]');
@@ -149,53 +153,54 @@
 
             if(t==='order') {
                 main.innerHTML = `<div class="grid grid-cols-2 gap-3">` + MENU.map(f => `
-                    <div onclick="openEditor(${f.id})" class="bg-white p-5 rounded-[1.5rem] shadow-sm active:bg-gray-100">
+                    <div onclick="openEditor(${f.id})" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 active:scale-95 transition-all">
                         <div class="font-bold text-sm mb-1">${f.name}</div>
-                        <div class="flex justify-between items-center text-[#8C7A6D] font-bold">$${f.price}</div>
+                        <div class="flex justify-between items-center text-[#8C7A6D] font-bold font-mono">$${f.price}</div>
                     </div>`).join('') + `</div>`;
             } else if(t==='cart') {
-                main.innerHTML = `<h2 class="font-black mb-4">購物車</h2>` + (cart.length ? cart.map((i, idx) => `
+                main.innerHTML = `<h2 class="font-black mb-4 text-lg px-2 uppercase tracking-tighter">購物車明細</h2>` + (cart.length ? cart.map((i, idx) => `
                     <div onclick="openEditor(${i.id}, ${idx})" class="bg-white p-4 rounded-2xl mb-3 shadow-sm border-l-4 border-[#8C7A6D]">
-                        <div class="flex justify-between font-bold"><span>${i.name}${i.hName?'拼'+i.hName:''}</span><span>$${i.total}</span></div>
-                        <div class="text-[10px] text-gray-400 mt-1 uppercase">${i.desc}</div>
-                    </div>`).join('') : `<p class="text-center py-10 text-gray-300">空</p>`);
+                        <div class="flex justify-between font-bold">
+                            <span class="text-sm">${i.name}${i.hName?'拼'+i.hName:''}</span>
+                            <span class="font-mono">$${i.finalTotal}</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 mt-1 uppercase leading-relaxed font-medium">${i.fullDesc}</div>
+                    </div>`).join('') : `<p class="text-center py-20 text-gray-300 font-bold">購物車目前沒有東西</p>`);
             } else if(t==='ongoing') {
                 main.innerHTML = ongoing.map((o, idx) => `
-                    <div class="bg-white p-5 rounded-[2rem] mb-4 shadow-sm">
+                    <div class="bg-white p-5 rounded-[2rem] mb-4 shadow-sm border border-gray-50">
                         <div class="flex justify-between border-b pb-2 mb-3">
-                            <span class="font-black">#${String(o.id).padStart(3,'0')}</span>
+                            <span class="font-black">#${String(o.id).padStart(3,'0')} <span class="text-[10px] font-normal text-gray-400">${o.time}</span></span>
                             <span class="text-xs font-bold ${o.status==='未付'?'text-red-500':'text-green-600'}">${o.status} (${o.pay})</span>
                         </div>
-                        <div class="text-xs space-y-2 mb-4">${o.items.map(i => `• ${i.name}${i.hName?'拼'+i.hName:''} (${i.desc})`).join('<br>')}</div>
+                        <div class="text-xs space-y-2 mb-4">${o.items.map(i => `<div class="font-bold">• ${i.name}${i.hName?'拼'+i.hName:''} <div class="text-[10px] text-gray-400 font-normal ml-3">${i.fullDesc}</div></div>`).join('')}</div>
                         <div class="flex gap-2">
-                            ${o.status==='未付' ? `<button onclick="openRepay(${idx})" class="flex-1 py-3 bg-orange-500 text-white rounded-xl font-bold">補付款</button>` : ''}
-                            <button onclick="finishOrder(${idx})" class="flex-1 py-3 bg-[#8C7A6D] text-white rounded-xl font-bold">完成</button>
+                            ${o.status==='未付' ? `<button onclick="openRepay(${idx})" class="flex-1 py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-lg">補付款</button>` : ''}
+                            <button onclick="finishOrder(${idx})" class="flex-1 py-4 bg-[#8C7A6D] text-white rounded-2xl font-bold shadow-lg">完成出餐</button>
                         </div>
                     </div>`).join('');
             } else if(t==='history') {
-                const total = history.reduce((s,o)=>s+o.price,0);
+                const total = history.reduce((s,o)=>s+o.total,0);
                 main.innerHTML = `
-                    <div class="bg-white p-6 rounded-[2rem] shadow-sm mb-4 text-center">
-                        <p class="text-[10px] font-bold text-gray-400">今日營收</p>
-                        <p class="text-4xl font-black text-[#8C7A6D]">$${total}</p>
-                        <button onclick="manualClear()" class="mt-4 text-[10px] bg-gray-100 px-4 py-2 rounded-full font-bold">立即清帳結算</button>
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm mb-6 text-center border border-gray-50">
+                        <p class="text-[10px] font-bold text-gray-400 tracking-widest mb-1">今日總營收</p>
+                        <p class="text-5xl font-black text-[#8C7A6D] font-mono">$${total}</p>
+                        <button onclick="executeClear()" class="mt-4 text-[10px] bg-gray-100 text-gray-500 px-6 py-2 rounded-full font-black uppercase">手動清帳結算</button>
                     </div>
-                    <p class="font-bold text-sm mb-2 px-2">歷史清帳日記</p>
-                    <div class="space-y-2">${closedLogs.map((l, idx) => `
-                        <div onclick="alert('詳細收支：\\n現金：$${l.stats.現金}\\n支付：$${l.stats.行動支付}\\nPanda：$${l.stats.Foodpanda}\\nUber：$${l.stats.UberEats}')" class="bg-white p-4 rounded-2xl shadow-sm text-xs flex justify-between">
-                            <span>${l.date}</span><span class="font-bold text-[#8C7A6D]">$${l.stats.total} ❯</span>
-                        </div>`).join('')}
-                    </div>
-                    <p class="font-bold text-sm mt-6 mb-2 px-2">今日訂單明細</p>
+                    <div class="mb-6"><p class="font-bold text-sm px-2 mb-2">清帳日記 (點擊查看明細)</p>
+                    <div class="space-y-2">${closedLogs.map(l => `
+                        <div onclick="alert('付款方式總額：\\n現金：$${l.stats.現金}\\n支付：$${l.stats.行動支付}\\nPanda：$${l.stats.Foodpanda}\\nUber：$${l.stats.UberEats}')" class="bg-white p-4 rounded-2xl shadow-sm text-xs flex justify-between items-center">
+                            <span class="font-bold">${l.date}</span><span class="text-[#8C7A6D] font-black">$${l.stats.total} ❯</span>
+                        </div>`).join('')}</div></div>
+                    <p class="font-bold text-sm px-2 mb-2">今日訂單明細</p>
                     <div class="space-y-2">${history.map(o => `
-                        <div class="bg-white p-4 rounded-xl text-[10px] shadow-sm">
-                            <div class="flex justify-between font-bold border-b mb-1 pb-1"><span>#${o.id} - ${o.pay}</span><span>$${o.price}</span></div>
-                            ${o.items.map(i => `• ${i.name}${i.hName?'拼'+i.hName:''} (${i.desc})`).join('<br>')}
-                        </div>`).join('')}
-                    </div>`;
+                        <div class="bg-white p-4 rounded-2xl text-[10px] shadow-sm">
+                            <div class="flex justify-between font-bold border-b pb-2 mb-2"><span>#${o.id} - ${o.pay}</span><span class="font-mono text-sm">$${o.total}</span></div>
+                            ${o.items.map(i => `<div>• ${i.name}${i.hName?'拼'+i.hName:''} (${i.fullDesc})</div>`).join('')}
+                        </div>`).join('')}</div>`;
             }
             lucide.createIcons();
-            updateUI();
+            updateGlobalUI();
         }
 
         function openEditor(id, cartIdx = -1) {
@@ -207,14 +212,20 @@
         }
 
         function renderEditor() {
-            document.getElementById('half-grid').innerHTML = `<div onclick="updItem('h',null)" class="option-btn ${!tempItem.hId?'active':''}">不雙拼</div>` + 
-                MENU.map(m => `<div onclick="updItem('h',${m.id})" class="option-btn ${tempItem.hId===m.id?'active':''}">${m.name.replace('章魚燒','')}</div>`).join('');
+            // 雙拼計費邏輯渲染
+            document.getElementById('half-grid').innerHTML = `<div onclick="upd('h',null)" class="option-btn ${!tempItem.hId?'active':''}">不雙拼</div>` + 
+                MENU.map(m => {
+                    let fee = (m.id===8||m.id===9) ? "+5" : (m.id===10 ? "+10" : "0");
+                    return `<div onclick="upd('h',${m.id})" class="option-btn ${tempItem.hId===m.id?'active':''}">${m.name.replace('章魚燒','')}${fee!=='0'?'($'+fee+')':''}</div>`;
+                }).join('');
+            
             document.getElementById('custom-fields').innerHTML = CUSTOMS.map(c => `<div><p class="text-[10px] font-bold text-gray-400 mb-1">${c}</p>
-                <div class="grid grid-cols-4 gap-2">${LEVELS.map(l => `<div onclick="updItem('c','${c}','${l}')" class="option-btn ${tempItem.customs[c]===l?'active':''}">${l}</div>`).join('')}</div></div>`).join('');
-            document.getElementById('addon-grid').innerHTML = ADDONS.map(a => `<div onclick="updItem('a','${a.id}')" class="option-btn ${tempItem.addons.includes(a.id)?'active':''}">${a.name}</div>`).join('');
+                <div class="grid grid-cols-4 gap-2">${LEVELS.map(l => `<div onclick="upd('c','${c}','${l}')" class="option-btn ${tempItem.customs[c]===l?'active':''}">${l}</div>`).join('')}</div></div>`).join('');
+            
+            document.getElementById('addon-grid').innerHTML = ADDONS.map(a => `<div onclick="upd('a','${a.id}')" class="option-btn ${tempItem.addons.includes(a.id)?'active':''}">${a.name}(+$${a.p})</div>`).join('');
         }
 
-        function updItem(t, p1, p2) {
+        function upd(t, p1, p2) {
             if(t==='h') tempItem.hId = p1;
             else if(t==='c') tempItem.customs[p1] = p2;
             else if(t==='a') { const i = tempItem.addons.indexOf(p1); if(i>-1) tempItem.addons.splice(i,1); else tempItem.addons.push(p1); }
@@ -222,20 +233,44 @@
         }
 
         function saveItemToCart() {
-            let p = tempItem.price; let hN = "";
-            if(tempItem.hId) { const h = MENU.find(m => m.id === tempItem.hId); p += h.hPrice; hN = h.name.replace('章魚燒',''); }
-            p += tempItem.addons.reduce((s, aId) => s + ADDONS.find(a => a.id === aId).p, 0);
-            const d = Object.entries(tempItem.customs).map(([k,v])=>v!=='正常'?k+v:'').filter(v=>v).join(' ') + (tempItem.addons.length ? ' | ' + tempItem.addons.map(a=>ADDONS.find(ad=>ad.id===a).name).join(',') : '');
-            const obj = { ...tempItem, total: p, hName: hN, desc: d || '標配' };
-            if(tempItem.cartIdx > -1) cart[tempItem.cartIdx] = obj; else cart.push(obj);
+            let baseP = tempItem.price;
+            let hName = "";
+            let hFee = 0;
+            // 雙拼計費邏輯：起司/金沙+5, 龍蝦+10
+            if(tempItem.hId) {
+                hName = MENU.find(m => m.id === tempItem.hId).name.replace('章魚燒','');
+                if(tempItem.hId === 8 || tempItem.hId === 9) hFee = 5;
+                else if(tempItem.hId === 10) hFee = 10;
+            }
+            let addonFee = tempItem.addons.reduce((s, aId) => s + ADDONS.find(a => a.id === aId).p, 0);
+            
+            const desc = Object.entries(tempItem.customs).map(([k,v])=>v!=='正常'?k+v:'').filter(v=>v).join(' ') + 
+                         (tempItem.addons.length ? ' | 加:' + tempItem.addons.map(a=>ADDONS.find(ad=>ad.id===a).name).join(',') : '');
+            
+            const final = { ...tempItem, finalTotal: baseP + hFee + addonFee, hName: hName, fullDesc: desc || '預設標配' };
+            if(tempItem.cartIdx > -1) cart[tempItem.cartIdx] = final; else cart.push(final);
             closeModals(); showTab('order');
         }
 
-        function openPaymentMenu() { if(!cart.length) return; payRef = { type: 'new' }; document.getElementById('pay-select-screen').classList.remove('hidden'); document.getElementById('calc-screen').classList.add('hidden'); document.getElementById('btn-pending').classList.remove('hidden'); document.getElementById('pay-modal').classList.add('active'); }
-        function openRepay(idx) { payRef = { type: 'repay', idx }; document.getElementById('pay-select-screen').classList.remove('hidden'); document.getElementById('calc-screen').classList.add('hidden'); document.getElementById('btn-pending').classList.add('hidden'); document.getElementById('pay-modal').classList.add('active'); }
+        function openPaymentMenu() { 
+            if(!cart.length) return; 
+            payRef = { type: 'new' }; 
+            document.getElementById('pay-select-screen').classList.remove('hidden'); 
+            document.getElementById('calc-screen').classList.add('hidden'); 
+            document.getElementById('btn-pending').classList.remove('hidden'); 
+            document.getElementById('pay-modal').classList.add('active'); 
+        }
+
+        function openRepay(idx) { 
+            payRef = { type: 'repay', idx }; 
+            document.getElementById('pay-select-screen').classList.remove('hidden'); 
+            document.getElementById('calc-screen').classList.add('hidden'); 
+            document.getElementById('btn-pending').classList.add('hidden'); 
+            document.getElementById('pay-modal').classList.add('active'); 
+        }
 
         function startCalc(m) {
-            const due = payRef.type === 'new' ? cart.reduce((s,i)=>s+i.total,0) : ongoing[payRef.idx].total;
+            const due = payRef.type === 'new' ? cart.reduce((s,i)=>s+i.finalTotal,0) : ongoing[payRef.idx].total;
             document.getElementById('calc-due').innerText = due;
             document.getElementById('pay-select-screen').classList.add('hidden');
             document.getElementById('calc-screen').classList.remove('hidden');
@@ -246,17 +281,20 @@
         function quickAdd(v) { calcVal = v.toString(); updCalc(); }
         function updCalc() {
             document.getElementById('calc-input').innerText = calcVal;
-            const change = parseInt(calcVal) - parseInt(document.getElementById('calc-due').innerText);
+            const due = parseInt(document.getElementById('calc-due').innerText);
+            const change = parseInt(calcVal) - due;
             document.getElementById('calc-change').innerText = change >= 0 ? "$" + change : "$0";
         }
 
         function submitOrder(method) {
-            const due = payRef.type === 'new' ? cart.reduce((s,i)=>s+i.total,0) : ongoing[payRef.idx].total;
-            const change = parseInt(calcVal) - due;
-            if(method === '現金' && change >= 0) alert('請找零：$' + change);
-            
+            const due = payRef.type === 'new' ? cart.reduce((s,i)=>s+i.finalTotal,0) : ongoing[payRef.idx].total;
+            if(method === '現金') {
+                const change = parseInt(calcVal) - due;
+                if(change < 0) return alert('金額不足！');
+                alert('結帳完成！請找零：$' + change);
+            }
             if(payRef.type === 'new') {
-                ongoing.push({ id: orderNum++, items: [...cart], total: due, pay: method, status: method==='待付款'?'未付':'已付', time: new Date().toLocaleTimeString() });
+                ongoing.push({ id: orderNum++, items: [...cart], total: due, pay: method, status: method==='待付款'?'未付':'已付', time: new Date().toLocaleTimeString('zh-TW',{hour12:false,hour:'2-digit',minute:'2-digit'}) });
                 cart = [];
             } else {
                 ongoing[payRef.idx].pay = method; ongoing[payRef.idx].status = '已付';
@@ -266,29 +304,27 @@
 
         function finishOrder(idx) {
             if(ongoing[idx].status === '未付') return alert('請先補付款！');
-            history.unshift({ ...ongoing[idx], price: ongoing[idx].total });
+            history.unshift(ongoing[idx]);
             ongoing.splice(idx,1);
             showTab('ongoing'); save();
         }
 
-        function manualClear() { if(confirm('確定要執行今日結算並清空營業額嗎？')) doClearDay(new Date().toLocaleDateString(), history); }
-
-        function doClearDay(dateStr, histArr) {
-            const stats = histArr.reduce((acc, o) => { acc.total += o.price; acc[o.pay] = (acc[o.pay]||0)+o.price; return acc; }, { total:0, '現金':0, '行動支付':0, 'Foodpanda':0, 'UberEats':0 });
+        function executeClear(dateStr = new Date().toLocaleDateString(), histData = history) {
+            const stats = histData.reduce((acc, o) => { acc.total += o.total; acc[o.pay] = (acc[o.pay]||0)+o.total; return acc; }, { total:0, '現金':0, '行動支付':0, 'Foodpanda':0, 'UberEats':0 });
             closedLogs.unshift({ date: dateStr, stats });
             localStorage.setItem('closed_logs', JSON.stringify(closedLogs));
             history = []; orderNum = 1; save(); showTab('history');
         }
 
         function closeModals() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
-        function updateUI() {
-            document.getElementById('total-amount').innerText = cart.reduce((s,i)=>s+i.total, 0);
+        function updateGlobalUI() {
+            document.getElementById('total-amount').innerText = cart.reduce((s,i)=>s+i.finalTotal, 0);
             document.getElementById('ongoing-badge').innerText = ongoing.length;
             document.getElementById('ongoing-badge').classList.toggle('hidden', !ongoing.length);
             document.getElementById('order-id-display').innerText = '#' + String(orderNum).padStart(3, '0');
         }
 
-        function save() { localStorage.setItem('pos_data', JSON.stringify({ day: new Date().toLocaleDateString(), ongoing, history, orderNum })); }
+        function save() { localStorage.setItem('pos_storage', JSON.stringify({ day: new Date().toLocaleDateString(), ongoing, history, orderNum })); }
 
         init();
     </script>
