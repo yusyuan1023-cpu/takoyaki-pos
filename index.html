@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>章魚燒 POS v22 - 完整功能版</title>
+    <title>章魚燒 POS v23 - 補款優化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -33,7 +33,7 @@
 
     <nav class="bg-white h-14 border-b flex justify-between items-center px-4 shrink-0 z-50">
         <div class="flex flex-col">
-            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Master POS v22</span>
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Master POS v23</span>
             <span id="order-id-display" class="text-lg font-black font-mono text-[#8C7A6D]">#001</span>
         </div>
         <div class="flex gap-5">
@@ -87,7 +87,7 @@
         let cart = [], ongoing = [], history = [], reports = [], orderNum = 1, editingIndex = -1, tempItem = null, repayIdx = -1, cVal = "";
 
         function init() {
-            const saved = JSON.parse(localStorage.getItem('pos_v22_data') || '{}');
+            const saved = JSON.parse(localStorage.getItem('pos_v23_data') || '{}');
             ongoing = saved.ongoing || [];
             history = saved.history || [];
             reports = saved.reports || [];
@@ -235,8 +235,8 @@
         }
 
         function openPaymentModal() {
-            const due = cart.reduce((s,i)=>s+i.finalTotal,0);
-            cVal = ""; repayIdx = -1;
+            const due = repayIdx !== -1 ? ongoing[repayIdx].total : cart.reduce((s,i)=>s+i.finalTotal,0);
+            cVal = ""; 
             document.getElementById('modal-content').innerHTML = `
                 <div id="pay-main" class="p-6">
                     <h3 class="font-black text-center mb-6 text-sm">付款管道 (應收 $${due})</h3>
@@ -246,7 +246,7 @@
                         <button onclick="submitOrder('Foodpanda')" class="sub-card p-5 flex flex-col items-center gap-2 border active:scale-95"><i data-lucide="truck" class="text-pink-500"></i><b>Panda</b></button>
                         <button onclick="submitOrder('UberEats')" class="sub-card p-5 flex flex-col items-center gap-2 border active:scale-95"><i data-lucide="shopping-bag" class="text-emerald-500"></i><b>UberEats</b></button>
                     </div>
-                    <button onclick="submitOrder('待付款')" class="w-full py-4 bg-orange-50 text-orange-600 rounded-xl font-black text-xs border border-orange-100">稍後付款 (掛帳)</button>
+                    ${repayIdx === -1 ? `<button onclick="submitOrder('待付款')" class="w-full py-4 bg-orange-50 text-orange-600 rounded-xl font-black text-xs border border-orange-100">稍後付款 (掛帳)</button>` : ''}
                 </div>
                 <div id="calc-area" class="hidden p-6">
                     <div class="bg-[#8C7A6D] p-5 rounded-2xl mb-4 text-white font-mono flex justify-between items-end">
@@ -265,24 +265,42 @@
         }
 
         function repayOrder(idx) {
-            repayIdx = idx; const due = ongoing[idx].total; cVal = "";
+            repayIdx = idx;
             openPaymentModal();
-            // 修改標題
-            setTimeout(() => { document.querySelector('#pay-main h3').innerText = `補收款 - #${String(ongoing[idx].id).padStart(3,'0')} (應收 $${due})`; }, 10);
         }
 
         async function submitOrder(method) {
             const time = new Date().toLocaleTimeString('zh-TW', {hour12:false, hour:'2-digit', minute:'2-digit'});
-            let currentOrder;
+            let targetOrder;
+
             if(repayIdx !== -1) { 
-                ongoing[repayIdx].pay = method; ongoing[repayIdx].status = '已付'; currentOrder = ongoing[repayIdx]; repayIdx = -1; 
+                // 補收款邏輯：更新原訂單狀態，不產生新單
+                ongoing[repayIdx].pay = method; 
+                ongoing[repayIdx].status = '已付'; 
+                targetOrder = ongoing[repayIdx];
+                repayIdx = -1; 
             } else {
+                // 新訂單邏輯
                 const total = cart.reduce((s,i)=>s+i.finalTotal,0);
-                currentOrder = { id: orderNum++, items: [...cart], total, pay: method, status: method==='待付款'?'未付':'已付', time };
-                ongoing.push(currentOrder); cart = [];
+                targetOrder = { 
+                    id: orderNum++, 
+                    items: [...cart], 
+                    total, 
+                    pay: method, 
+                    status: method==='待付款'?'未付':'已付', 
+                    time 
+                };
+                ongoing.push(targetOrder); 
+                cart = [];
             }
-            if(currentOrder.pay !== '待付款') syncCloud(currentOrder);
-            closeModals(); toggleSidePanel(false); showTab('order'); save();
+
+            // 同步至 Google Sheets (僅同步非「未付」的成交單)
+            if(targetOrder.pay !== '待付款') syncCloud(targetOrder);
+
+            closeModals(); 
+            toggleSidePanel(false); 
+            showTab('order'); 
+            save();
         }
 
         function syncCloud(o, type="SAVE_ORDER") {
@@ -290,7 +308,13 @@
             fetch(CLOUD_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ type, id: o.id, pay: o.pay, total: o.total, details }) });
         }
 
-        function finishOrder(idx) { if(ongoing[idx].status === '未付') return alert('請先完成收款！'); history.unshift(ongoing[idx]); ongoing.splice(idx,1); showTab('ongoing'); save(); }
+        function finishOrder(idx) { 
+            if(ongoing[idx].status === '未付') return alert('請先完成收款！'); 
+            history.unshift(ongoing[idx]); 
+            ongoing.splice(idx,1); 
+            showTab('ongoing'); 
+            save(); 
+        }
         
         function refundOrder(idx) {
             if(!confirm("確定要退款此訂單嗎？這會從今日營收中扣除。")) return;
@@ -311,9 +335,9 @@
         }
 
         function closeDailyAccount() {
-            if(ongoing.length > 0) return alert("尚有製作中的訂單，請先完成或刪除再清帳。");
+            if(ongoing.length > 0) return alert("尚有製作中的訂單，請先完成製作（結案）後再清帳。");
             if(history.length === 0) return alert("今日尚無成交紀錄。");
-            if(!confirm("確定要結清今日帳目嗎？資料將移至清帳歷史，主畫面將重置。")) return;
+            if(!confirm("確定要結清今日帳目嗎？資料將移至清帳歷史，單號將重置。")) return;
             
             const summary = calculateDaily();
             const report = {
@@ -325,15 +349,15 @@
             };
             reports.unshift(report);
             history = []; orderNum = 1;
-            save(); localStorage.setItem('reports_v22', JSON.stringify(reports));
+            save();
             showTab('report'); alert("清帳完成！");
         }
 
         function viewReportDetail(date) {
             const r = reports.find(x => x.date === date);
             document.getElementById('modal-content').innerHTML = `
-                <div class="p-6">
-                    <h3 class="font-black mb-4">清帳明細 - ${r.date.split(' ')[0]}</h3>
+                <div class="p-6 text-left">
+                    <h3 class="font-black mb-4">清帳明細 - ${r.date}</h3>
                     <div class="space-y-2 mb-6">
                         <div class="flex justify-between text-sm"><span>總金額</span><b class="text-xl">$${r.total}</b></div>
                         <div class="flex justify-between text-xs text-gray-500"><span>現金</span><span>$${r.details.Cash}</span></div>
@@ -342,7 +366,7 @@
                         <div class="flex justify-between text-xs text-gray-500"><span>UberEats</span><span>$${r.details.UberEats}</span></div>
                     </div>
                     <div class="max-h-60 overflow-y-auto border-t pt-4">
-                        <p class="text-[10px] font-bold text-gray-400 mb-2 uppercase">訂單清單</p>
+                        <p class="text-[10px] font-bold text-gray-400 mb-2 uppercase">訂單明細</p>
                         ${r.orders.map(o => `<div class="text-[10px] mb-2 pb-2 border-b border-gray-50">#${o.id} - ${o.pay} $${o.total}<br><span class="text-gray-400">${o.items.map(i=>i.name).join(',')}</span></div>`).join('')}
                     </div>
                     <button onclick="closeModals()" class="w-full mt-6 py-4 bg-gray-100 rounded-xl font-bold">關閉</button>
@@ -350,7 +374,7 @@
             document.getElementById('modal-container').classList.add('active');
         }
 
-        // 計算機功能
+        // 計算機輔助功能
         function startCalc() { document.getElementById('pay-main').classList.add('hidden'); document.getElementById('calc-area').classList.remove('hidden'); }
         function fastCash(v, d) { cVal = v.toString(); updateCalc(d); }
         function pressCalc(v, d) { if(v==='C') cVal=""; else cVal+=v; updateCalc(d); }
@@ -364,12 +388,13 @@
             if (p > 0 && p < d) return alert('金額不足');
             if (p === 0 || p === d) submitOrder('現金');
             else {
-                document.getElementById('modal-content').innerHTML = `<div class="p-8 text-center"><p class="text-gray-400 mb-2 font-bold">應找零錢</p><p class="text-6xl font-black text-[#8C7A6D] mb-8">$${p-d}</p><button onclick="submitOrder('現金')" class="w-full py-5 bg-[#8C7A6D] text-white rounded-2xl font-black">完成找零並關閉</button></div>`;
+                document.getElementById('modal-content').innerHTML = `<div class="p-8 text-center"><p class="text-gray-400 mb-2 font-bold">應找零錢</p><p class="text-6xl font-black text-[#8C7A6D] mb-8">$${p-d}</p><button onclick="submitOrder('現金')" class="w-full py-5 bg-[#8C7A6D] text-white rounded-2xl font-black">完成收錢並關閉</button></div>`;
             }
         }
 
         function closeModals() { document.getElementById('modal-container').classList.remove('active'); }
         function toggleSidePanel(show) { document.getElementById('side-panel').classList.toggle('active', show); document.getElementById('overlay').classList.toggle('active', show); if(show) renderCart(); }
+        
         function renderCart() {
             const list = document.getElementById('side-cart-items');
             list.innerHTML = cart.map((i, idx) => `<div onclick="openEditor(${i.id}, ${idx})" class="sub-card border-l-4 border-[#8C7A6D] p-3 shadow-sm">
@@ -378,12 +403,16 @@
             const total = cart.reduce((s,i)=>s+i.finalTotal, 0);
             document.getElementById('side-total').innerText = total; document.getElementById('total-amount').innerText = total;
         }
+
         function updateUI() {
             document.getElementById('ongoing-badge').innerText = ongoing.length;
             document.getElementById('ongoing-badge').classList.toggle('hidden', !ongoing.length);
             document.getElementById('order-id-display').innerText = '#' + String(orderNum).padStart(3, '0');
         }
-        function save() { localStorage.setItem('pos_v22_data', JSON.stringify({ ongoing, history, reports, orderNum })); }
+
+        function save() { 
+            localStorage.setItem('pos_v23_data', JSON.stringify({ ongoing, history, reports, orderNum })); 
+        }
 
         init();
     </script>
